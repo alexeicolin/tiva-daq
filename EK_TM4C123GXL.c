@@ -307,6 +307,9 @@ Void EK_TM4C123GXL_initUART()
 {
     /* Enable and configure the peripherals used by the uart. */
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
+    SysCtlPeripheralSleepEnable(SYSCTL_PERIPH_UART0);
+    SysCtlPeripheralDeepSleepEnable(SYSCTL_PERIPH_UART0);
+
     GPIOPinConfigure(GPIO_PA0_U0RX);
     GPIOPinConfigure(GPIO_PA1_U0TX);
     GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
