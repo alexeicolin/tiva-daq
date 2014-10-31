@@ -18,14 +18,15 @@
 
 #define NUM_SAMPLE_BUFFERS 2
 #define SAMPLE_BUFFER_SIZE 32
+#define SAMPLE_SIZE 2
 
-static uint32_t samples[NUM_SAMPLE_BUFFERS][SAMPLE_BUFFER_SIZE];
+static uint32_t samples[NUM_SAMPLE_BUFFERS][SAMPLE_BUFFER_SIZE][SAMPLE_SIZE];
 static Bool bufferFree[NUM_SAMPLE_BUFFERS];
 
 static Int buf = 0; /* buffer index that is currently being filled */
 static Int n = 0; /* index into current sample buffer (next sample goes here) */
 
-#define ADC_SEQUENCER_IDX 3
+#define ADC_SEQUENCER_IDX 2
 
 static Void initADC()
 {
@@ -34,25 +35,15 @@ static Void initADC()
     shortDelay();
 
     GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_3);
+    GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_2);
 
     ADCSequenceDisable(ADC0_BASE, ADC_SEQUENCER_IDX);
-
-    // Enable sample sequence 3 with a processor signal trigger.  Sequence 3
-    // will do a single sample when the processor sends a signal to start the
-    // conversion.  Each ADC module has 4 programmable sequences, sequence 0
-    // to sequence 3.  This example is arbitrarily using sequence 3.
     ADCSequenceConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, ADC_TRIGGER_PROCESSOR, 0);
 
-    // Configure step 0 on sequence 3.  Sample channel 0 (ADC_CTL_CH0) in
-    // single-ended mode (default) and configure the interrupt flag
-    // (ADC_CTL_IE) to be set when the sample is done.  Tell the ADC logic
-    // that this is the last conversion on sequence 3 (ADC_CTL_END).  Sequence
-    // 3 has only one programmable step.  Sequence 1 and 2 have 4 steps, and
-    // sequence 0 has 8 programmable steps.  Since we are only doing a single
-    // conversion using sequence 3 we will only configure step 0.  For more
-    // information on the ADC sequences and steps, reference the datasheet.
-    ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 0, ADC_CTL_CH0 | ADC_CTL_IE |
-                             ADC_CTL_END);
+    ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 0,
+                             ADC_CTL_CH0);
+    ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 1,
+                             ADC_CTL_CH1 | ADC_CTL_IE | ADC_CTL_END);
 
     ADCIntEnable(ADC0_BASE, ADC_SEQUENCER_IDX);
     //ADCIntClear(ADC0_BASE, ADC_SEQUENCER_IDX);
@@ -64,7 +55,7 @@ static Void initADC()
 Void onSampleReady(UArg arg)
 {
     if (bufferFree[buf]) {
-        ADCSequenceDataGet(ADC0_BASE, ADC_SEQUENCER_IDX, &samples[buf][n++]);
+        ADCSequenceDataGet(ADC0_BASE, ADC_SEQUENCER_IDX, samples[buf][n++]);
         if (n == SAMPLE_BUFFER_SIZE) {
             bufferFree[buf] = FALSE; /* signal to consumer task */
             buf = (buf + 1) % NUM_SAMPLE_BUFFERS;
@@ -98,7 +89,8 @@ Void printData(UArg arg)
         for (j = 0; j < NUM_SAMPLE_BUFFERS; ++j) {
             if (!bufferFree[j]) {
                 for (i = 0; i < SAMPLE_BUFFER_SIZE; ++i)
-                    System_printf("%u\n", samples[j][i]);
+                    System_printf("%u %u\n",
+                                  samples[j][i][0], samples[j][i][1]);
                 System_flush();
 
                 bufferFree[j] = TRUE;
