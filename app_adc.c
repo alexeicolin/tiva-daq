@@ -24,6 +24,7 @@
 #include "delay.h"
 #include "debounce.h"
 #include "pwm.h"
+#include "profiles.h"
 #include "Board.h"
 
 #define CONCAT_INNER(prefix, idx) prefix ## idx
@@ -55,19 +56,6 @@ static Int readingBufIdx = -1;
 #define ADC_SEQ                 (ADC_O_SSMUX0)
 #define ADC_SEQ_STEP            (ADC_O_SSMUX1 - ADC_O_SSMUX0)
 #define ADC_SSFIFO              (ADC_O_SSFIFO0 - ADC_O_SSMUX0)
-
-/* Current profile */
-struct ProfileInterval {
-    UInt32 length; /* profile ticks */
-    UInt32 value;  /* duty cycle */
-};
-
-static struct ProfileInterval profile[] = {
-    /* length (ms), duty cycle (%) */
-    { 100, 1 },
-    { 100, 50 }
-};
-#define NUM_PROFILE_INTERVALS (sizeof(profile) / sizeof(profile[0]))
 
 /* Cursors into the profile waveform */
 static UInt32 profileIntervalIdx = 0;
@@ -221,7 +209,7 @@ Void onProfileTick(UArg arg)
 
     profileIntervalPos++;
     if (profileIntervalPos == profile[profileIntervalIdx].length) {
-        profileIntervalIdx = (profileIntervalIdx + 1) % NUM_PROFILE_INTERVALS;
+        profileIntervalIdx = (profileIntervalIdx + 1) % profileLen;
         profileIntervalPos = 0;
     }
 
@@ -389,7 +377,7 @@ Int app(Int argc, Char* argv[])
         bufferState[j] = BUFFER_FREE;
 
     /* Convert profile waveform intervals from ms to profile generator ticks */
-    for (j = 0; j < NUM_PROFILE_INTERVALS; ++j) {
+    for (j = 0; j < profileLen; ++j) {
         Assert_isTrue((profile[j].length * profileTicksPerSec) % 1000 == 0, NULL);
         profile[j].length = (profile[j].length * profileTicksPerSec / 1000);
     }
