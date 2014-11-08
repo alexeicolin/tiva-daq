@@ -13,6 +13,7 @@
 #include <driverlib/gpio.h>
 #include <driverlib/pin_map.h>
 #include <driverlib/sysctl.h>
+#include "driverlib/timer.h"
 
 #include "delay.h"
 
@@ -40,7 +41,7 @@ static inline float diffAdcToV(UInt32 adcOut)
 }
 #endif
 
-static Void initADC()
+static Void initADC(UInt32 samplesPerSec)
 {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
@@ -50,7 +51,7 @@ static Void initADC()
                    GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3);
 
     ADCSequenceDisable(ADC0_BASE, ADC_SEQUENCER_IDX);
-    ADCSequenceConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, ADC_TRIGGER_PROCESSOR, 0);
+    ADCSequenceConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, ADC_TRIGGER_TIMER, 0);
 
     ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 0,
                              ADC_CTL_CH0 | ADC_CTL_D);
@@ -64,6 +65,12 @@ static Void initADC()
 
     ADCSequenceEnable(ADC0_BASE, ADC_SEQUENCER_IDX);
 
+    // Timer that triggers the sample
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
+    TimerConfigure(TIMER0_BASE, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_B_PERIODIC);
+    TimerLoadSet(TIMER0_BASE, TIMER_B, SysCtlClockGet() / samplesPerSec);
+    TimerControlTrigger(TIMER0_BASE, TIMER_B, TRUE);
+    TimerEnable(TIMER0_BASE, TIMER_B);
 }
 
 Void onSampleReady(UArg arg)
@@ -125,6 +132,6 @@ Int app(Int argc, Char* argv[])
 
     System_printf("Hello world!\n");
 
-    initADC();
+    initADC(2000);
     return 0;
 }
