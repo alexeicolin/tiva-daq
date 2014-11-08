@@ -167,7 +167,6 @@ static Void processBuffer(UInt32 controlSelect, Int idx)
 
 Void onSampleTransferComplete(UArg arg)
 {
-    UInt32 mode;
     UInt32 status = ADCIntStatusEx(ADC0_BASE, TRUE);
 
     ADCIntClearEx(ADC0_BASE, status);
