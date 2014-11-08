@@ -56,6 +56,27 @@ static Int readingBufIdx = -1;
 #define ADC_SEQ_STEP            (ADC_O_SSMUX1 - ADC_O_SSMUX0)
 #define ADC_SSFIFO              (ADC_O_SSFIFO0 - ADC_O_SSMUX0)
 
+/* Current profile */
+struct ProfileInterval {
+    UInt32 length; /* profile ticks */
+    UInt32 value;  /* duty cycle */
+};
+
+static struct ProfileInterval profile[] = {
+    /* length (ms), duty cycle (%) */
+    { 100, 1 },
+    { 100, 50 }
+};
+#define NUM_PROFILE_INTERVALS (sizeof(profile) / sizeof(profile[0]))
+
+/* Cursors into the profile waveform */
+static UInt32 profileIntervalIdx = 0;
+static UInt32 profileIntervalPos = 0;
+
+static UInt32 samplesPerSec = 100;
+static UInt32 profileTicksPerSec = 10;
+static UInt32 pwmFreqHz = 100000;
+
 #if 0
 static inline float singleAdcToV(UInt32 adcOut)
 {
@@ -197,6 +218,15 @@ Void onProfileTick(UArg arg)
     GPIO_write(EK_TM4C123GXL_LED_BLUE, Board_LED_ON);
     shortDelay();
     GPIO_write(EK_TM4C123GXL_LED_BLUE, Board_LED_OFF);
+
+    profileIntervalPos++;
+    if (profileIntervalPos == profile[profileIntervalIdx].length) {
+        profileIntervalIdx = (profileIntervalIdx + 1) % NUM_PROFILE_INTERVALS;
+        profileIntervalPos = 0;
+    }
+
+    if (profile[profileIntervalIdx].value != getPwmDutyCycle())
+        setPwmDutyCycle(profile[profileIntervalIdx].value);
 
     TimerIntClear(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
 }
@@ -358,13 +388,19 @@ Int app(Int argc, Char* argv[])
     for (j = 0; j < NUM_SAMPLE_BUFFERS; ++j)
         bufferState[j] = BUFFER_FREE;
 
+    /* Convert profile waveform intervals from ms to profile generator ticks */
+    for (j = 0; j < NUM_PROFILE_INTERVALS; ++j) {
+        Assert_isTrue((profile[j].length * profileTicksPerSec) % 1000 == 0, NULL);
+        profile[j].length = (profile[j].length * profileTicksPerSec / 1000);
+    }
+
     /* Shared by ADC trigger and profile generator */
     initADCandProfileGenTimers();
 
     initUART();
     initOutputDMA();
-    initADC(100 /* samples/sec */);
-    initProfileGen(10 /* ticks/sec */);
+    initADC(samplesPerSec);
+    initProfileGen(profileTicksPerSec);
 
     /* Marker for the parser to lock in on the binary data stream */
     UARTCharPut(UART0_BASE, 0xf0);
@@ -372,7 +408,7 @@ Int app(Int argc, Char* argv[])
     UARTCharPut(UART0_BASE, 0xca);
     UARTCharPut(UART0_BASE, 0xfe);
 
-    enablePwm(100000 /* Hz */, 1 /* % */);
+    enablePwm(pwmFreqHz, 1 /* % */);
 
     startADCandProfileGen();
     return 0;
