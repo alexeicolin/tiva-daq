@@ -11,6 +11,7 @@
 #include <inc/hw_memmap.h>
 #include <inc/hw_uart.h>
 #include <inc/hw_ints.h>
+#include <inc/hw_adc.h>
 #include <driverlib/adc.h>
 #include <driverlib/gpio.h>
 #include <driverlib/pin_map.h>
@@ -23,25 +24,35 @@
 #include "delay.h"
 #include "Board.h"
 
+#define CONCAT_INNER(prefix, idx) prefix ## idx
+#define CONCAT(prefix, idx) CONCAT_INNER(prefix, idx)
+
 uint8_t dmaControlTable[1024] __attribute__ ((aligned(1024)));
 
 #define NUM_SAMPLE_BUFFERS 2
 #define SAMPLE_BUFFER_SIZE 256
-#define SAMPLE_SIZE 3
+#define SAMPLE_SEQ_LEN 4
+#define SAMPLE_SIZE 2 /* bytes */
 
 enum BufferState {
     BUFFER_FREE,
     BUFFER_FULL,
-    BUFFER_DMA,
 };
 
-static UInt16 samples[NUM_SAMPLE_BUFFERS][SAMPLE_BUFFER_SIZE][SAMPLE_SIZE];
+static UInt16 samples[NUM_SAMPLE_BUFFERS][SAMPLE_BUFFER_SIZE][SAMPLE_SEQ_LEN];
 static enum BufferState bufferState[NUM_SAMPLE_BUFFERS];
 
 static Int buf = 0; /* buffer index that is currently being filled */
 static Int n = 0; /* index into current sample buffer (next sample goes here) */
+static Int readingBufIdx = -1;
 
 #define ADC_SEQUENCER_IDX 2
+#define ADC_CHANNEL CONCAT(UDMA_CHANNEL_ADC, ADC_SEQUENCER_IDX)
+
+// From driverlib/adc.c
+#define ADC_SEQ                 (ADC_O_SSMUX0)
+#define ADC_SEQ_STEP            (ADC_O_SSMUX1 - ADC_O_SSMUX0)
+#define ADC_SSFIFO              (ADC_O_SSFIFO0 - ADC_O_SSMUX0)
 
 #if 0
 static inline float singleAdcToV(UInt32 adcOut)
@@ -55,6 +66,17 @@ static inline float diffAdcToV(UInt32 adcOut)
 }
 #endif
 
+static Void startBufferTransfer(Int idx);
+
+static Void setupDMAADCTransfer(UInt32 controlSelect, Int bufIdx)
+{
+    uDMAChannelTransferSet(ADC_CHANNEL | controlSelect,
+                           UDMA_MODE_PINGPONG,
+                           (void *)(ADC0_BASE + ADC_SEQ +
+                               ADC_SEQ_STEP * ADC_SEQUENCER_IDX + ADC_SSFIFO),
+                           samples[bufIdx], SAMPLE_BUFFER_SIZE * SAMPLE_SEQ_LEN);
+}
+
 static Void initADC(UInt32 samplesPerSec)
 {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
@@ -62,7 +84,7 @@ static Void initADC(UInt32 samplesPerSec)
     shortDelay();
 
     GPIOPinTypeADC(GPIO_PORTE_BASE,
-                   GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3);
+                   GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_5);
 
     ADCSequenceDisable(ADC0_BASE, ADC_SEQUENCER_IDX);
     ADCSequenceConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, ADC_TRIGGER_TIMER, 0);
@@ -72,26 +94,70 @@ static Void initADC(UInt32 samplesPerSec)
     ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 1,
                              ADC_CTL_CH2);
     ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 2,
-                             ADC_CTL_CH3 | ADC_CTL_IE | ADC_CTL_END);
+                             ADC_CTL_CH3);
+    ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 3,
+                             ADC_CTL_CH8 | ADC_CTL_IE | ADC_CTL_END);
 
-    ADCIntEnable(ADC0_BASE, ADC_SEQUENCER_IDX);
+    //ADCIntEnable(ADC0_BASE, ADC_SEQUENCER_IDX);
     //ADCIntClear(ADC0_BASE, ADC_SEQUENCER_IDX);
+    //
 
     ADCSequenceEnable(ADC0_BASE, ADC_SEQUENCER_IDX);
 
+    ADCSequenceDMAEnable(ADC0_BASE, ADC_SEQUENCER_IDX);
+    ADCIntEnableEx(ADC0_BASE, CONCAT(ADC_INT_DMA_SS, ADC_SEQUENCER_IDX));
+    IntEnable(CONCAT(INT_ADC0SS, ADC_SEQUENCER_IDX));
+
+    uDMAChannelAttributeDisable(ADC_CHANNEL,
+                                UDMA_ATTR_ALTSELECT | UDMA_ATTR_USEBURST |
+                                UDMA_ATTR_HIGH_PRIORITY |
+                                UDMA_ATTR_REQMASK);
+    uDMAChannelControlSet(ADC_CHANNEL | UDMA_PRI_SELECT,
+                          UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 |
+                          UDMA_ARB_4);
+    uDMAChannelControlSet(ADC_CHANNEL | UDMA_ALT_SELECT,
+                          UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 |
+                          UDMA_ARB_4);
+    setupDMAADCTransfer(UDMA_PRI_SELECT, 0);
+    setupDMAADCTransfer(UDMA_ALT_SELECT, 1);
+
+    uDMAChannelEnable(ADC_CHANNEL);
+
     // Timer that triggers the sample
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
-    TimerConfigure(TIMER0_BASE, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_B_PERIODIC);
-    TimerLoadSet(TIMER0_BASE, TIMER_B, SysCtlClockGet() / samplesPerSec);
-    TimerControlTrigger(TIMER0_BASE, TIMER_B, TRUE);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
+    TimerConfigure(TIMER1_BASE, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_B_PERIODIC);
+    TimerLoadSet(TIMER1_BASE, TIMER_B, SysCtlClockGet() / samplesPerSec);
+    TimerControlTrigger(TIMER1_BASE, TIMER_B, TRUE);
 }
 
-Void startADC()
+static Void startADC()
 {
-    TimerEnable(TIMER0_BASE, TIMER_B);
+    TimerEnable(TIMER1_BASE, TIMER_B);
 }
 
-Void initUART()
+static Void processBuffer(UInt32 controlSelect, Int idx)
+{
+    Assert_isTrue(bufferState[idx] == BUFFER_FREE, NULL);
+    bufferState[idx] = BUFFER_FULL;
+    readingBufIdx = idx;
+    startBufferTransfer(idx);
+    setupDMAADCTransfer(controlSelect, idx);
+}
+
+Void onSampleTransferComplete(UArg arg)
+{
+    UInt32 mode;
+    UInt32 status = ADCIntStatusEx(ADC0_BASE, TRUE);
+
+    ADCIntClearEx(ADC0_BASE, status);
+
+    if (uDMAChannelModeGet(ADC_CHANNEL | UDMA_PRI_SELECT) == UDMA_MODE_STOP)
+        processBuffer(UDMA_PRI_SELECT, 0);
+    if (uDMAChannelModeGet(ADC_CHANNEL | UDMA_ALT_SELECT) == UDMA_MODE_STOP)
+        processBuffer(UDMA_ALT_SELECT, 1);
+}
+
+static Void initUART()
 {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
@@ -103,7 +169,7 @@ Void initUART()
                         UART_CONFIG_PAR_NONE);
 }
 
-Void initDMA()
+static Void initOutputDMA()
 {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
     IntEnable(INT_UDMAERR);
@@ -137,30 +203,19 @@ Void onDMAError(UArg arg)
     uDMAErrorStatusClear();
 }
 
-Void startBufferTransfer(Int idx)
+static Void startBufferTransfer(Int idx)
 {
-#ifdef BLINK_LED
-    GPIO_write(Board_LED, Board_LED_ON);
-    shortDelay();
-    GPIO_write(Board_LED, Board_LED_OFF);
-#endif
+    GPIO_write(EK_TM4C123GXL_LED_GREEN, Board_LED_ON);
 
     uDMAChannelTransferSet(UDMA_CHANNEL_UART0TX | UDMA_PRI_SELECT,
                            UDMA_MODE_BASIC, samples[idx],
                            (void *)(UART0_BASE + UART_O_DR),
-                           sizeof(samples[buf]));
+                           SAMPLE_BUFFER_SIZE * SAMPLE_SEQ_LEN * SAMPLE_SIZE);
     uDMAChannelEnable(UDMA_CHANNEL_UART0TX);
 }
 
 Void onBufferTransferComplete(UArg arg)
 {
-#ifdef BLINK_LED
-    GPIO_write(EK_TM4C123GXL_LED_GREEN, Board_LED_ON);
-    shortDelay();
-    GPIO_write(EK_TM4C123GXL_LED_GREEN, Board_LED_OFF);
-#endif
-
-    Int bufIdx = buf ? (buf - 1) % NUM_SAMPLE_BUFFERS : NUM_SAMPLE_BUFFERS - 1;
     UInt32 status;
     status = UARTIntStatus(UART0_BASE, 1);
     UARTIntClear(UART0_BASE, status);
@@ -168,25 +223,27 @@ Void onBufferTransferComplete(UArg arg)
     /* Disabled channel means transfer is done */
     Assert_isTrue(!uDMAChannelIsEnabled(UDMA_CHANNEL_UART0TX), NULL);
 
-    Assert_isTrue(bufferState[bufIdx] == BUFFER_DMA, NULL);
-    bufferState[bufIdx] = BUFFER_FREE;
+    bufferState[readingBufIdx] = BUFFER_FREE;
+    readingBufIdx = -1;
+
+    GPIO_write(EK_TM4C123GXL_LED_GREEN, Board_LED_OFF);
 }
 
 Void onSampleReady(UArg arg)
 {
     Int i;
-    uint32_t sample[SAMPLE_SIZE];
+    uint32_t sample[SAMPLE_SEQ_LEN];
 
     if (bufferState[buf] == BUFFER_FREE) {
         ADCSequenceDataGet(ADC0_BASE, ADC_SEQUENCER_IDX, sample);
 
         /* Samples are 16-bit (from 12-bit ADC), so cast UInt32 to UInt16 */
-        for (i = 0; i < SAMPLE_SIZE; ++i)
+        for (i = 0; i < SAMPLE_SEQ_LEN; ++i)
             samples[buf][n][i] = sample[i];
         ++n;
 
         if (n == SAMPLE_BUFFER_SIZE) {
-            bufferState[buf] = BUFFER_DMA; /* signal to consumer task */
+            bufferState[buf] = BUFFER_FULL; /* signal to consumer task */
             startBufferTransfer(buf);
             buf = (buf + 1) % NUM_SAMPLE_BUFFERS;
             n = 0;
@@ -240,7 +297,7 @@ Int app(Int argc, Char* argv[])
         bufferState[j] = BUFFER_FREE;
 
     initUART();
-    initDMA();
+    initOutputDMA();
     initADC(2000);
 
     /* Marker for the parser to lock in on the binary data stream */
