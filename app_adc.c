@@ -66,6 +66,13 @@ static inline float diffAdcToV(UInt32 adcOut)
 }
 #endif
 
+static Void initADCandProfileGenTimers()
+{
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
+    TimerConfigure(TIMER1_BASE, TIMER_CFG_SPLIT_PAIR |
+                                TIMER_CFG_A_PERIODIC | TIMER_CFG_B_PERIODIC);
+}
+
 static Void startBufferTransfer(Int idx);
 
 static Void setupDMAADCTransfer(UInt32 controlSelect, Int bufIdx)
@@ -137,17 +144,14 @@ static Void initADC(UInt32 samplesPerSec)
     uDMAChannelEnable(ADC_CHANNEL);
 
     // Timer that triggers the sample
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
-    TimerConfigure(TIMER1_BASE, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_B_PERIODIC);
     TimerPrescaleSet(TIMER1_BASE, TIMER_B, prescaler);
     TimerLoadSet(TIMER1_BASE, TIMER_B, period);
     TimerControlTrigger(TIMER1_BASE, TIMER_B, TRUE);
 }
 
-static Void startADC()
+static Void startADCandProfileGen()
 {
-    TimerEnable(TIMER1_BASE, TIMER_B);
-
+    TimerEnable(TIMER1_BASE, TIMER_BOTH);
 }
 
 static Void processBuffer(UInt32 controlSelect, Int idx)
@@ -170,6 +174,30 @@ Void onSampleTransferComplete(UArg arg)
         processBuffer(UDMA_PRI_SELECT, 0);
     if (uDMAChannelModeGet(ADC_CHANNEL | UDMA_ALT_SELECT) == UDMA_MODE_STOP)
         processBuffer(UDMA_ALT_SELECT, 1);
+}
+
+static Void initProfileGen(UInt32 samplesPerSec)
+{
+    /* See discurssion about prescaler in initADC */
+    UInt32 divisor = 128; /* appropriate for 10 to 1000 ticks/sec */
+    UInt32 prescaler = divisor - 1;
+    UInt32 period = SysCtlClockGet() / divisor / samplesPerSec;
+
+    Assert_isTrue(samplesPerSec >= 10 && samplesPerSec <= 1000, NULL);
+    Assert_isTrue(SysCtlClockGet() % divisor == 0, NULL);
+
+    TimerPrescaleSet(TIMER1_BASE, TIMER_A, prescaler);
+    TimerLoadSet(TIMER1_BASE, TIMER_A, period);
+    TimerIntEnable(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
+}
+
+Void onProfileTick(UArg arg)
+{
+    GPIO_write(EK_TM4C123GXL_LED_BLUE, Board_LED_ON);
+    shortDelay();
+    GPIO_write(EK_TM4C123GXL_LED_BLUE, Board_LED_OFF);
+
+    TimerIntClear(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
 }
 
 static Void initUART()
@@ -311,9 +339,13 @@ Int app(Int argc, Char* argv[])
     for (j = 0; j < NUM_SAMPLE_BUFFERS; ++j)
         bufferState[j] = BUFFER_FREE;
 
+    /* Shared by ADC trigger and profile generator */
+    initADCandProfileGenTimers();
+
     initUART();
     initOutputDMA();
-    initADC(100);
+    initADC(100 /* samples/sec */);
+    initProfileGen(10 /* ticks/sec */);
 
     /* Marker for the parser to lock in on the binary data stream */
     UARTCharPut(UART0_BASE, 0xf0);
@@ -321,6 +353,6 @@ Int app(Int argc, Char* argv[])
     UARTCharPut(UART0_BASE, 0xca);
     UARTCharPut(UART0_BASE, 0xfe);
 
-    startADC();
+    startADCandProfileGen();
     return 0;
 }
