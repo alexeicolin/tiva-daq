@@ -22,6 +22,8 @@
 #include <driverlib/interrupt.h>
 
 #include "delay.h"
+#include "debounce.h"
+#include "pwm.h"
 #include "Board.h"
 
 #define CONCAT_INNER(prefix, idx) prefix ## idx
@@ -333,6 +335,24 @@ Void printData(UArg arg)
 
 }
 
+#define PWM_DUTY_CYCLE_DELTA_PRC 10
+
+/* decrement PWM duty cycle */
+Void gpioButton1Fxn()
+{
+    if (!debounce(0)) return;
+    changePwmDutyCycle(-PWM_DUTY_CYCLE_DELTA_PRC);
+    GPIO_clearInt(EK_TM4C123GXL_GPIO_SW1);
+}
+
+/* increment PWM duty cycle */
+Void gpioButton2Fxn()
+{
+    if (!debounce(1)) return;
+    changePwmDutyCycle(PWM_DUTY_CYCLE_DELTA_PRC);
+    GPIO_clearInt(EK_TM4C123GXL_GPIO_SW2);
+}
+
 Int app(Int argc, Char* argv[])
 {
     Int j;
@@ -352,6 +372,8 @@ Int app(Int argc, Char* argv[])
     UARTCharPut(UART0_BASE, 0x0d);
     UARTCharPut(UART0_BASE, 0xca);
     UARTCharPut(UART0_BASE, 0xfe);
+
+    enablePwm(100000 /* Hz */, 1 /* % */);
 
     startADCandProfileGen();
     return 0;
