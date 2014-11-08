@@ -79,6 +79,19 @@ static Void setupDMAADCTransfer(UInt32 controlSelect, Int bufIdx)
 
 static Void initADC(UInt32 samplesPerSec)
 {
+    UInt32 divisor = 16; /* appropriate for 100 to 100k samples/sec */
+    UInt32 prescaler = divisor - 1;
+    UInt32 period = SysCtlClockGet() / divisor / samplesPerSec;
+
+    /* These limits are imposed by the divisor chosen above:
+     * 1 <= 80Mhz/divisor/minSamplesPerSec <= 2**16
+     * but probably the lower limit counts should be a bunch more than just 1.
+     * For example, for divisor 16:
+     * 80MHz/16/100 = 50000 and 80MHz/16/100000 = 50 */
+    /* TODO: calculate divisor automatically */
+    Assert_isTrue(samplesPerSec >= 100 && samplesPerSec <= 100000, NULL);
+    Assert_isTrue(SysCtlClockGet() % divisor == 0, NULL);
+
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
     shortDelay();
@@ -126,13 +139,15 @@ static Void initADC(UInt32 samplesPerSec)
     // Timer that triggers the sample
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
     TimerConfigure(TIMER1_BASE, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_B_PERIODIC);
-    TimerLoadSet(TIMER1_BASE, TIMER_B, SysCtlClockGet() / samplesPerSec);
+    TimerPrescaleSet(TIMER1_BASE, TIMER_B, prescaler);
+    TimerLoadSet(TIMER1_BASE, TIMER_B, period);
     TimerControlTrigger(TIMER1_BASE, TIMER_B, TRUE);
 }
 
 static Void startADC()
 {
     TimerEnable(TIMER1_BASE, TIMER_B);
+
 }
 
 static Void processBuffer(UInt32 controlSelect, Int idx)
@@ -298,7 +313,7 @@ Int app(Int argc, Char* argv[])
 
     initUART();
     initOutputDMA();
-    initADC(2000);
+    initADC(100);
 
     /* Marker for the parser to lock in on the binary data stream */
     UARTCharPut(UART0_BASE, 0xf0);
