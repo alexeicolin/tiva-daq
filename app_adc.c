@@ -18,7 +18,7 @@
 
 #define NUM_SAMPLE_BUFFERS 2
 #define SAMPLE_BUFFER_SIZE 32
-#define SAMPLE_SIZE 2
+#define SAMPLE_SIZE 3
 
 static uint32_t samples[NUM_SAMPLE_BUFFERS][SAMPLE_BUFFER_SIZE][SAMPLE_SIZE];
 static Bool bufferFree[NUM_SAMPLE_BUFFERS];
@@ -28,22 +28,36 @@ static Int n = 0; /* index into current sample buffer (next sample goes here) */
 
 #define ADC_SEQUENCER_IDX 2
 
+#if 0
+static inline float singleAdcToV(UInt32 adcOut)
+{
+    return (float)adcOut * 3.3 / 0xFFF;
+}
+
+static inline float diffAdcToV(UInt32 adcOut)
+{
+    return ((float)adcOut - 0x800) * 3.3 / (0xFFF - 0x800);
+}
+#endif
+
 static Void initADC()
 {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
     shortDelay();
 
-    GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_3);
-    GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_2);
+    GPIOPinTypeADC(GPIO_PORTE_BASE,
+                   GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3);
 
     ADCSequenceDisable(ADC0_BASE, ADC_SEQUENCER_IDX);
     ADCSequenceConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, ADC_TRIGGER_PROCESSOR, 0);
 
     ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 0,
-                             ADC_CTL_CH0);
+                             ADC_CTL_CH0 | ADC_CTL_D);
     ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 1,
-                             ADC_CTL_CH1 | ADC_CTL_IE | ADC_CTL_END);
+                             ADC_CTL_CH2);
+    ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 2,
+                             ADC_CTL_CH3 | ADC_CTL_IE | ADC_CTL_END);
 
     ADCIntEnable(ADC0_BASE, ADC_SEQUENCER_IDX);
     //ADCIntClear(ADC0_BASE, ADC_SEQUENCER_IDX);
@@ -89,8 +103,9 @@ Void printData(UArg arg)
         for (j = 0; j < NUM_SAMPLE_BUFFERS; ++j) {
             if (!bufferFree[j]) {
                 for (i = 0; i < SAMPLE_BUFFER_SIZE; ++i)
-                    System_printf("%u %u\n",
-                                  samples[j][i][0], samples[j][i][1]);
+                    System_printf("V_E2-V_E3=%u V_E1=%u V_E0=%u\n",
+                                  samples[j][i][0],
+                                  samples[j][i][1], samples[j][i][2]);
                 System_flush();
 
                 bufferFree[j] = TRUE;
