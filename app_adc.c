@@ -127,7 +127,7 @@ static Void initADC(UInt32 samplesPerSec)
     ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 2,
                              ADC_CTL_CH2);
     ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 3,
-                             ADC_CTL_CH8 | ADC_CTL_IE | ADC_CTL_END);
+                             ADC_CTL_TS | ADC_CTL_IE | ADC_CTL_END);
 
     //ADCIntEnable(ADC0_BASE, ADC_SEQUENCER_IDX);
     //ADCIntClear(ADC0_BASE, ADC_SEQUENCER_IDX);
