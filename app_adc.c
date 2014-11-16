@@ -34,7 +34,7 @@ uint8_t dmaControlTable[1024] __attribute__ ((aligned(1024)));
 
 #define NUM_SAMPLE_BUFFERS 2
 #define SAMPLE_BUFFER_SIZE 256
-#define SAMPLE_SEQ_LEN 4
+#define SAMPLE_SEQ_LEN 8
 #define SAMPLE_SIZE 2 /* bytes */
 
 enum BufferState {
@@ -49,7 +49,7 @@ static Int buf = 0; /* buffer index that is currently being filled */
 static Int n = 0; /* index into current sample buffer (next sample goes here) */
 static Int readingBufIdx = -1;
 
-#define ADC_SEQUENCER_IDX 2
+#define ADC_SEQUENCER_IDX 0
 #define ADC_CHANNEL CONCAT(UDMA_CHANNEL_ADC, ADC_SEQUENCER_IDX)
 
 // From driverlib/adc.c
@@ -112,10 +112,13 @@ static Void initADC(UInt32 samplesPerSec)
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
     shortDelay();
 
     GPIOPinTypeADC(GPIO_PORTE_BASE,
                    GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_5);
+    GPIOPinTypeADC(GPIO_PORTD_BASE,
+                   GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3);
 
     ADCSequenceDisable(ADC0_BASE, ADC_SEQUENCER_IDX);
     ADCSequenceConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, ADC_TRIGGER_TIMER, 0);
@@ -127,6 +130,14 @@ static Void initADC(UInt32 samplesPerSec)
     ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 2,
                              ADC_CTL_CH2);
     ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 3,
+                             ADC_CTL_CH3);
+    ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 4,
+                             ADC_CTL_CH4);
+    ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 5,
+                             ADC_CTL_CH5);
+    ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 6,
+                             ADC_CTL_CH6);
+    ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 7,
                              ADC_CTL_TS | ADC_CTL_IE | ADC_CTL_END);
 
     //ADCIntEnable(ADC0_BASE, ADC_SEQUENCER_IDX);
@@ -145,10 +156,10 @@ static Void initADC(UInt32 samplesPerSec)
                                 UDMA_ATTR_REQMASK);
     uDMAChannelControlSet(ADC_CHANNEL | UDMA_PRI_SELECT,
                           UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 |
-                          UDMA_ARB_4);
+                          UDMA_ARB_8);
     uDMAChannelControlSet(ADC_CHANNEL | UDMA_ALT_SELECT,
                           UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 |
-                          UDMA_ARB_4);
+                          UDMA_ARB_8);
     setupDMAADCTransfer(UDMA_PRI_SELECT, 0);
     setupDMAADCTransfer(UDMA_ALT_SELECT, 1);
 
