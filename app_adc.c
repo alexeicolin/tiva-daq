@@ -2,6 +2,7 @@
 #include <xdc/runtime/System.h>
 #include <xdc/runtime/Assert.h>
 #include <ti/sysbios/knl/Task.h>
+#include <ti/sysbios/hal/Hwi.h>
 
 #include <xdc/cfg/global.h>
 
@@ -27,13 +28,18 @@
 #include "profiles.h"
 #include "Board.h"
 
-#define CONCAT_INNER(prefix, idx) prefix ## idx
-#define CONCAT(prefix, idx) CONCAT_INNER(prefix, idx)
+#define CONCAT_INNER(a, b) a ## b
+#define CONCAT(a, b) CONCAT_INNER(a, b)
+#define CONCAT3_INNER(a, b, c) a ## b ## c
+#define CONCAT3(a, b, c) CONCAT3_INNER(a, b, c)
+#define CONCATU3_INNER(a, b, c) a ## _ ## b ## _ ## c
+#define CONCATU3(a, b, c) CONCATU3_INNER(a, b, c)
 
 uint8_t dmaControlTable[1024] __attribute__ ((aligned(1024)));
 
+#define NUM_ADCS 2
 #define NUM_SAMPLE_BUFFERS 2
-#define SAMPLE_BUFFER_SIZE 256
+#define SAMPLE_BUFFER_SIZE 128
 #define SAMPLE_SEQ_LEN 8
 #define SAMPLE_SIZE 2 /* bytes */
 
@@ -42,20 +48,11 @@ enum BufferState {
     BUFFER_FULL,
 };
 
-static UInt16 samples[NUM_SAMPLE_BUFFERS][SAMPLE_BUFFER_SIZE][SAMPLE_SEQ_LEN];
-static enum BufferState bufferState[NUM_SAMPLE_BUFFERS];
+static UInt16 samples[NUM_SAMPLE_BUFFERS][NUM_ADCS][SAMPLE_BUFFER_SIZE][SAMPLE_SEQ_LEN];
+static enum BufferState bufferState[NUM_ADCS][NUM_SAMPLE_BUFFERS];
 
-static Int buf = 0; /* buffer index that is currently being filled */
-static Int n = 0; /* index into current sample buffer (next sample goes here) */
-static Int readingBufIdx = -1;
-
-#define ADC_SEQUENCER_IDX 0
-#define ADC_CHANNEL CONCAT(UDMA_CHANNEL_ADC, ADC_SEQUENCER_IDX)
-
-// From driverlib/adc.c
-#define ADC_SEQ                 (ADC_O_SSMUX0)
-#define ADC_SEQ_STEP            (ADC_O_SSMUX1 - ADC_O_SSMUX0)
-#define ADC_SSFIFO              (ADC_O_SSFIFO0 - ADC_O_SSMUX0)
+/* index of buffer currently being transferred to UART */
+static Int readingBufIdx = -1; 
 
 /* Cursors into the profile waveform */
 static UInt32 profileIntervalIdx = 0;
@@ -64,6 +61,40 @@ static UInt32 profileIntervalPos = 0;
 static UInt32 samplesPerSec = 100;
 static UInt32 profileTicksPerSec = 10;
 static UInt32 pwmFreqHz = 100000;
+
+#define ADC_SEQUENCER_IDX 0
+
+// The names in driverlip/udma.h are irregular, so fix them up
+#define UDMA_CHANNEL_ADC_0_0 UDMA_CHANNEL_ADC0
+#define UDMA_CHANNEL_ADC_1_0 UDMA_SEC_CHANNEL_ADC10
+
+// From driverlib/adc.c
+#define ADC_SEQ                 (ADC_O_SSMUX0)
+#define ADC_SEQ_STEP            (ADC_O_SSMUX1 - ADC_O_SSMUX0)
+#define ADC_SSFIFO              (ADC_O_SSFIFO0 - ADC_O_SSMUX0)
+
+#define ADC_BASE(adc) CONCAT3(ADC, adc, _BASE)
+#define ADC_CHANNEL(adc) CONCATU3(UDMA_CHANNEL_ADC, adc, ADC_SEQUENCER_IDX)
+
+static inline UInt32 adcBaseAddr(Int adc)
+{
+    switch (adc) {
+        case 0: return ADC_BASE(0);
+        case 1: return ADC_BASE(1);
+        default: Assert_isTrue(FALSE, NULL);
+    }
+    return ~0; /* unreachable */
+}
+
+static inline UInt32 adcChanAddr(Int adc)
+{
+    switch (adc) {
+        case 0: return ADC_CHANNEL(0);
+        case 1: return ADC_CHANNEL(1);
+        default: Assert_isTrue(FALSE, NULL);
+    }
+    return ~0; /* unreachable */
+}
 
 #if 0
 static inline float singleAdcToV(UInt32 adcOut)
@@ -86,13 +117,42 @@ static Void initADCandProfileGenTimers()
 
 static Void startBufferTransfer(Int idx);
 
-static Void setupDMAADCTransfer(UInt32 controlSelect, Int bufIdx)
+static Void setupDMAADCTransfer(Int adc, UInt32 controlSelect, Int bufIdx)
 {
-    uDMAChannelTransferSet(ADC_CHANNEL | controlSelect,
+    UInt adcBase = adcBaseAddr(adc);
+    UInt adcChan = adcChanAddr(adc);
+    uDMAChannelTransferSet(adcChan | controlSelect,
                            UDMA_MODE_PINGPONG,
-                           (void *)(ADC0_BASE + ADC_SEQ +
+                           (void *)(adcBase + ADC_SEQ +
                                ADC_SEQ_STEP * ADC_SEQUENCER_IDX + ADC_SSFIFO),
-                           samples[bufIdx], SAMPLE_BUFFER_SIZE * SAMPLE_SEQ_LEN);
+                           samples[bufIdx][adc],
+                           SAMPLE_BUFFER_SIZE * SAMPLE_SEQ_LEN);
+}
+
+static Void initADCDMA(int adc)
+{
+    UInt adcBase = adcBaseAddr(adc);
+    UInt adcChan = adcChanAddr(adc);
+
+    ADCSequenceDMAEnable(adcBase, ADC_SEQUENCER_IDX);
+    ADCIntEnableEx(adcBase, CONCAT(ADC_INT_DMA_SS, ADC_SEQUENCER_IDX));
+    //IntEnable(CONCAT(INT_ADC0SS, ADC_SEQUENCER_IDX)); // TODO: adc index
+
+    uDMAChannelAttributeDisable(adcChan,
+                                UDMA_ATTR_ALTSELECT | UDMA_ATTR_USEBURST |
+                                UDMA_ATTR_HIGH_PRIORITY |
+                                UDMA_ATTR_REQMASK);
+    uDMAChannelAttributeDisable(adcChan, UDMA_ATTR_HIGH_PRIORITY);
+    uDMAChannelControlSet(adcChan | UDMA_PRI_SELECT,
+                          UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 |
+                          UDMA_ARB_8);
+    uDMAChannelControlSet(adcChan | UDMA_ALT_SELECT,
+                          UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 |
+                          UDMA_ARB_8);
+    setupDMAADCTransfer(adc, UDMA_PRI_SELECT, 0);
+    setupDMAADCTransfer(adc, UDMA_ALT_SELECT, 1);
+
+    uDMAChannelEnable(adcChan);
 }
 
 static Void initADC(UInt32 samplesPerSec)
@@ -111,6 +171,7 @@ static Void initADC(UInt32 samplesPerSec)
     Assert_isTrue(SysCtlClockGet() % divisor == 0, NULL);
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC1);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
     shortDelay();
@@ -120,50 +181,55 @@ static Void initADC(UInt32 samplesPerSec)
     GPIOPinTypeADC(GPIO_PORTD_BASE,
                    GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3);
 
-    ADCSequenceDisable(ADC0_BASE, ADC_SEQUENCER_IDX);
-    ADCSequenceConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, ADC_TRIGGER_TIMER, 0);
+    ADCSequenceDisable(ADC_BASE(0), ADC_SEQUENCER_IDX);
+    ADCSequenceConfigure(ADC_BASE(0), ADC_SEQUENCER_IDX, ADC_TRIGGER_TIMER, 0);
 
-    ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 0,
+    ADCSequenceStepConfigure(ADC_BASE(0), ADC_SEQUENCER_IDX, 0,
                              ADC_CTL_CH0);
-    ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 1,
+    ADCSequenceStepConfigure(ADC_BASE(0), ADC_SEQUENCER_IDX, 1,
                              ADC_CTL_CH1);
-    ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 2,
+    ADCSequenceStepConfigure(ADC_BASE(0), ADC_SEQUENCER_IDX, 2,
                              ADC_CTL_CH2);
-    ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 3,
+    ADCSequenceStepConfigure(ADC_BASE(0), ADC_SEQUENCER_IDX, 3,
                              ADC_CTL_CH3);
-    ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 4,
-                             ADC_CTL_CH4);
-    ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 5,
-                             ADC_CTL_CH5);
-    ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 6,
-                             ADC_CTL_CH6);
-    ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQUENCER_IDX, 7,
+    ADCSequenceStepConfigure(ADC_BASE(0), ADC_SEQUENCER_IDX, 4,
+                             ADC_CTL_CH8);
+    ADCSequenceStepConfigure(ADC_BASE(0), ADC_SEQUENCER_IDX, 5,
+                             ADC_CTL_CH9);
+    ADCSequenceStepConfigure(ADC_BASE(0), ADC_SEQUENCER_IDX, 6,
+                             ADC_CTL_CH0);
+    ADCSequenceStepConfigure(ADC_BASE(0), ADC_SEQUENCER_IDX, 7,
                              ADC_CTL_TS | ADC_CTL_IE | ADC_CTL_END);
 
-    //ADCIntEnable(ADC0_BASE, ADC_SEQUENCER_IDX);
-    //ADCIntClear(ADC0_BASE, ADC_SEQUENCER_IDX);
-    //
+    ADCSequenceDisable(ADC_BASE(1), ADC_SEQUENCER_IDX);
+    ADCSequenceConfigure(ADC_BASE(1), ADC_SEQUENCER_IDX, ADC_TRIGGER_TIMER, 0);
 
-    ADCSequenceEnable(ADC0_BASE, ADC_SEQUENCER_IDX);
+    ADCSequenceStepConfigure(ADC_BASE(1), ADC_SEQUENCER_IDX, 0,
+                             ADC_CTL_CH4);
+    ADCSequenceStepConfigure(ADC_BASE(1), ADC_SEQUENCER_IDX, 1,
+                             ADC_CTL_CH5);
+    ADCSequenceStepConfigure(ADC_BASE(1), ADC_SEQUENCER_IDX, 2,
+                             ADC_CTL_CH6);
+    ADCSequenceStepConfigure(ADC_BASE(1), ADC_SEQUENCER_IDX, 3,
+                             ADC_CTL_CH7);
+    ADCSequenceStepConfigure(ADC_BASE(1), ADC_SEQUENCER_IDX, 4,
+                             ADC_CTL_CH10);
+    ADCSequenceStepConfigure(ADC_BASE(1), ADC_SEQUENCER_IDX, 5,
+                             ADC_CTL_CH11);
+    ADCSequenceStepConfigure(ADC_BASE(1), ADC_SEQUENCER_IDX, 6,
+                             ADC_CTL_CH0);
+    ADCSequenceStepConfigure(ADC_BASE(1), ADC_SEQUENCER_IDX, 7,
+                             ADC_CTL_TS | ADC_CTL_IE | ADC_CTL_END);
 
-    ADCSequenceDMAEnable(ADC0_BASE, ADC_SEQUENCER_IDX);
-    ADCIntEnableEx(ADC0_BASE, CONCAT(ADC_INT_DMA_SS, ADC_SEQUENCER_IDX));
-    IntEnable(CONCAT(INT_ADC0SS, ADC_SEQUENCER_IDX));
+    ADCSequenceEnable(ADC_BASE(0), ADC_SEQUENCER_IDX);
+    ADCSequenceEnable(ADC_BASE(1), ADC_SEQUENCER_IDX);
 
-    uDMAChannelAttributeDisable(ADC_CHANNEL,
-                                UDMA_ATTR_ALTSELECT | UDMA_ATTR_USEBURST |
-                                UDMA_ATTR_HIGH_PRIORITY |
-                                UDMA_ATTR_REQMASK);
-    uDMAChannelControlSet(ADC_CHANNEL | UDMA_PRI_SELECT,
-                          UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 |
-                          UDMA_ARB_8);
-    uDMAChannelControlSet(ADC_CHANNEL | UDMA_ALT_SELECT,
-                          UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 |
-                          UDMA_ARB_8);
-    setupDMAADCTransfer(UDMA_PRI_SELECT, 0);
-    setupDMAADCTransfer(UDMA_ALT_SELECT, 1);
+    // DMA from ADC to memory buffer
+    uDMAChannelAssign(UDMA_CH14_ADC0_0);
+    uDMAChannelAssign(UDMA_CH24_ADC1_0);
 
-    uDMAChannelEnable(ADC_CHANNEL);
+    initADCDMA(0);
+    initADCDMA(1);
 
     // Timer that triggers the sample
     TimerPrescaleSet(TIMER1_BASE, TIMER_B, prescaler);
@@ -176,25 +242,50 @@ static Void startADCandProfileGen()
     TimerEnable(TIMER1_BASE, TIMER_BOTH);
 }
 
-static Void processBuffer(UInt32 controlSelect, Int idx)
+static Void processBuffer(UInt32 adc, UInt32 controlSelect, Int idx)
 {
-    Assert_isTrue(bufferState[idx] == BUFFER_FREE, NULL);
-    bufferState[idx] = BUFFER_FULL;
-    readingBufIdx = idx;
-    startBufferTransfer(idx);
-    setupDMAADCTransfer(controlSelect, idx);
+    Int adcIdx;
+    Bool allADCsFull = TRUE;
+    Assert_isTrue(bufferState[adc][idx] == BUFFER_FREE, NULL);
+    bufferState[adc][idx] = BUFFER_FULL;
+
+    // Setup the next transfer into this buffer that was just filled
+    setupDMAADCTransfer(adc, controlSelect, idx);
+
+    // Launch UART transfer if all ADCs filled their buffer ready
+    for (adcIdx = 0; adcIdx < NUM_ADCS; ++adcIdx) {
+        if (bufferState[adcIdx][idx] != BUFFER_FULL) {
+            allADCsFull = FALSE;
+            break;
+        }
+    }
+    if (allADCsFull) {
+        readingBufIdx = idx;
+        startBufferTransfer(idx);
+    }
+
 }
 
 Void onSampleTransferComplete(UArg arg)
 {
-    UInt32 status = ADCIntStatusEx(ADC0_BASE, TRUE);
+    UInt key;
+    UInt adc = (UInt)arg;
+    UInt adcBase = adcBaseAddr(adc);
+    UInt adcChan = adcChanAddr(adc);
 
-    ADCIntClearEx(ADC0_BASE, status);
+    UInt32 status = ADCIntStatusEx(adcBase, TRUE);
+    ADCIntClearEx(adcBase, status);
 
-    if (uDMAChannelModeGet(ADC_CHANNEL | UDMA_PRI_SELECT) == UDMA_MODE_STOP)
-        processBuffer(UDMA_PRI_SELECT, 0);
-    if (uDMAChannelModeGet(ADC_CHANNEL | UDMA_ALT_SELECT) == UDMA_MODE_STOP)
-        processBuffer(UDMA_ALT_SELECT, 1);
+    /* Protect the check of whether both ADCs are ready: prevent the other ADC
+     * from interrupting while we do the check */
+    key = Hwi_disable();
+
+    if (uDMAChannelModeGet(adcChan | UDMA_PRI_SELECT) == UDMA_MODE_STOP)
+        processBuffer(adc, UDMA_PRI_SELECT, 0);
+    if (uDMAChannelModeGet(adcChan | UDMA_ALT_SELECT) == UDMA_MODE_STOP)
+        processBuffer(adc, UDMA_ALT_SELECT, 1);
+
+    Hwi_restore(key);
 }
 
 static Void initProfileGen(UInt32 samplesPerSec)
@@ -278,17 +369,23 @@ Void onDMAError(UArg arg)
 
 static Void startBufferTransfer(Int idx)
 {
+    Int adc;
+
     GPIO_write(EK_TM4C123GXL_LED_GREEN, Board_LED_ON);
 
+    for (adc = 0; adc < NUM_ADCS; ++adc)
+        Assert_isTrue(bufferState[adc][idx] == BUFFER_FULL, NULL);
+
     uDMAChannelTransferSet(UDMA_CHANNEL_UART0TX | UDMA_PRI_SELECT,
-                           UDMA_MODE_BASIC, samples[idx],
-                           (void *)(UART0_BASE + UART_O_DR),
-                           SAMPLE_BUFFER_SIZE * SAMPLE_SEQ_LEN * SAMPLE_SIZE);
+       UDMA_MODE_BASIC, samples[idx],
+       (void *)(UART0_BASE + UART_O_DR),
+       NUM_ADCS * SAMPLE_BUFFER_SIZE * SAMPLE_SEQ_LEN * SAMPLE_SIZE);
     uDMAChannelEnable(UDMA_CHANNEL_UART0TX);
 }
 
 Void onBufferTransferComplete(UArg arg)
 {
+    Int adc;
     UInt32 status;
     status = UARTIntStatus(UART0_BASE, 1);
     UARTIntClear(UART0_BASE, status);
@@ -296,71 +393,13 @@ Void onBufferTransferComplete(UArg arg)
     /* Disabled channel means transfer is done */
     Assert_isTrue(!uDMAChannelIsEnabled(UDMA_CHANNEL_UART0TX), NULL);
 
-    bufferState[readingBufIdx] = BUFFER_FREE;
+    for (adc = 0; adc < NUM_ADCS; ++adc) {
+        Assert_isTrue(bufferState[adc][readingBufIdx] == BUFFER_FULL, NULL);
+        bufferState[adc][readingBufIdx] = BUFFER_FREE;
+    }
     readingBufIdx = -1;
 
     GPIO_write(EK_TM4C123GXL_LED_GREEN, Board_LED_OFF);
-}
-
-Void onSampleReady(UArg arg)
-{
-    Int i;
-    uint32_t sample[SAMPLE_SEQ_LEN];
-
-    if (bufferState[buf] == BUFFER_FREE) {
-        ADCSequenceDataGet(ADC0_BASE, ADC_SEQUENCER_IDX, sample);
-
-        /* Samples are 16-bit (from 12-bit ADC), so cast UInt32 to UInt16 */
-        for (i = 0; i < SAMPLE_SEQ_LEN; ++i)
-            samples[buf][n][i] = sample[i];
-        ++n;
-
-        if (n == SAMPLE_BUFFER_SIZE) {
-            bufferState[buf] = BUFFER_FULL; /* signal to consumer task */
-            startBufferTransfer(buf);
-            buf = (buf + 1) % NUM_SAMPLE_BUFFERS;
-            n = 0;
-        }
-        ADCIntClear(ADC0_BASE, ADC_SEQUENCER_IDX);
-    } else {
-        /* then buffer overflow */
-        Assert_isTrue(0, NULL);
-    }
-}
-
-Void triggerSample(UArg arg)
-{
-    while (1) {
-        ADCProcessorTrigger(ADC0_BASE, ADC_SEQUENCER_IDX);
-        Task_sleep(50); /* ticks */
-    }
-}
-
-Void printData(UArg arg)
-{
-    Int i, j;
-    while (1) {
-
-#if 0 /* ADC polling (no interrupt) */
-        while(!ADCIntStatus(ADC0_BASE, ADC_SEQUENCER_IDX, FALSE));
-        ADCIntClear(ADC0_BASE, ADC_SEQUENCER_IDX);
-        ADCSequenceDataGet(ADC0_BASE, ADC_SEQUENCER_IDX, sample);
-#else
-        for (j = 0; j < NUM_SAMPLE_BUFFERS; ++j) {
-            if (bufferState[j] != BUFFER_FREE) {
-                for (i = 0; i < SAMPLE_BUFFER_SIZE; ++i)
-                    System_printf("V_E2-V_E3=%u V_E1=%u V_E0=%u\n",
-                                  samples[j][i][0],
-                                  samples[j][i][1], samples[j][i][2]);
-                System_flush();
-
-                bufferState[j] = BUFFER_FREE;
-            }
-        }
-#endif
-        Task_yield();
-    }
-
 }
 
 #define PWM_DUTY_CYCLE_DELTA_PRC 10
@@ -383,9 +422,10 @@ Void gpioButton2Fxn()
 
 Int app(Int argc, Char* argv[])
 {
-    Int j;
-    for (j = 0; j < NUM_SAMPLE_BUFFERS; ++j)
-        bufferState[j] = BUFFER_FREE;
+    Int i, j;
+    for (i = 0; i < NUM_ADCS; ++i)
+        for (j = 0; j < NUM_SAMPLE_BUFFERS; ++j)
+            bufferState[i][j] = BUFFER_FREE;
 
     /* Convert profile waveform intervals from ms to profile generator ticks */
     for (j = 0; j < profileLen; ++j) {
