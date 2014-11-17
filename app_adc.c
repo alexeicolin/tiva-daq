@@ -54,13 +54,14 @@ static enum BufferState bufferState[NUM_ADCS][NUM_SAMPLE_BUFFERS];
 /* index of buffer currently being transferred to UART */
 static Int readingBufIdx = -1; 
 
-/* Cursors into the profile waveform */
-static UInt32 profileIntervalIdx = 0;
-static UInt32 profileIntervalPos = 0;
+#define PROFILE_TICKS_PER_SEC     10
+#define SAMPLES_PER_SEC          100
+#define PWM_FREQ_HZ           100000
 
-static UInt32 samplesPerSec = 100;
-static UInt32 profileTicksPerSec = 10;
-static UInt32 pwmFreqHz = 100000;
+#define PROFILE_LED_BLINK_RATE_TICKS (PROFILE_TICKS_PER_SEC / 2) /* 0.5 sec */
+#define PROFILE_LED_ON_TICKS         (PROFILE_TICKS_PER_SEC / 10) /* 0.1 sec */
+
+#define NUM_PROFILES 2
 
 #define ADC_SEQUENCER_IDX 0
 
@@ -305,20 +306,47 @@ static Void initProfileGen(UInt32 samplesPerSec)
 
 Void onProfileTick(UArg arg)
 {
-    GPIO_write(EK_TM4C123GXL_LED_BLUE, Board_LED_ON);
-    shortDelay();
-    GPIO_write(EK_TM4C123GXL_LED_BLUE, Board_LED_OFF);
 
-    profileIntervalPos++;
-    if (profileIntervalPos == profile[profileIntervalIdx].length) {
-        profileIntervalIdx = (profileIntervalIdx + 1) % profileLen;
-        profileIntervalPos = 0;
+    /* Cursors into the profile waveform */
+    static Int intervalIdx[NUM_PROFILES] = {0};
+    static Int intervalPos[NUM_PROFILES] = {0};
+    static UInt32 ticks = 0;
+    static UInt32 ledOnTicks = 0;
+
+    Int profileIdx;
+    struct ProfileInterval *profile;
+
+    if (ticks % PROFILE_LED_BLINK_RATE_TICKS == 0 && !ledOnTicks) {
+        GPIO_write(EK_TM4C123GXL_LED_BLUE, Board_LED_ON);
+        ledOnTicks = PROFILE_LED_ON_TICKS;
     }
 
-    if (profile[profileIntervalIdx].value != getPwmDutyCycle())
-        setPwmDutyCycle(profile[profileIntervalIdx].value);
+    for (profileIdx = 0; profileIdx < numProfiles; ++profileIdx) {
+        profile = profiles[profileIdx];
+
+        if (profile[intervalIdx[profileIdx]].value !=
+                getPwmDutyCycle(profileIdx))
+            setPwmDutyCycle(profileIdx, profile[intervalIdx[profileIdx]].value);
+
+        intervalPos[profileIdx]++;
+        if (intervalPos[profileIdx] ==
+                profile[intervalIdx[profileIdx]].length) {
+            intervalIdx[profileIdx]++;
+            if (!profile[intervalIdx[profileIdx]].length) /* last interval */
+                intervalIdx[profileIdx] = 0;
+            intervalPos[profileIdx] = 0;
+        }
+
+    }
 
     TimerIntClear(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
+
+    if (!ledOnTicks)
+        GPIO_write(EK_TM4C123GXL_LED_BLUE, Board_LED_OFF);
+    if (ledOnTicks)
+        ledOnTicks--;
+
+    ticks++;
 }
 
 static Void initUART()
@@ -402,44 +430,22 @@ Void onBufferTransferComplete(UArg arg)
     GPIO_write(EK_TM4C123GXL_LED_GREEN, Board_LED_OFF);
 }
 
-#define PWM_DUTY_CYCLE_DELTA_PRC 10
-
-/* decrement PWM duty cycle */
-Void gpioButton1Fxn()
-{
-    if (!debounce(0)) return;
-    changePwmDutyCycle(-PWM_DUTY_CYCLE_DELTA_PRC);
-    GPIO_clearInt(EK_TM4C123GXL_GPIO_SW1);
-}
-
-/* increment PWM duty cycle */
-Void gpioButton2Fxn()
-{
-    if (!debounce(1)) return;
-    changePwmDutyCycle(PWM_DUTY_CYCLE_DELTA_PRC);
-    GPIO_clearInt(EK_TM4C123GXL_GPIO_SW2);
-}
-
 Int app(Int argc, Char* argv[])
 {
     Int i, j;
+
     for (i = 0; i < NUM_ADCS; ++i)
         for (j = 0; j < NUM_SAMPLE_BUFFERS; ++j)
             bufferState[i][j] = BUFFER_FREE;
 
-    /* Convert profile waveform intervals from ms to profile generator ticks */
-    for (j = 0; j < profileLen; ++j) {
-        Assert_isTrue((profile[j].length * profileTicksPerSec) % 1000 == 0, NULL);
-        profile[j].length = (profile[j].length * profileTicksPerSec / 1000);
-    }
+    Assert_isTrue(NUM_PROFILES == numProfiles, NULL);
+    convertProfileToTicks(PROFILE_TICKS_PER_SEC);
 
-    /* Shared by ADC trigger and profile generator */
     initADCandProfileGenTimers();
-
     initUART();
     initOutputDMA();
-    initADC(samplesPerSec);
-    initProfileGen(profileTicksPerSec);
+    initADC(SAMPLES_PER_SEC);
+    initProfileGen(PROFILE_TICKS_PER_SEC);
 
     /* Marker for the parser to lock in on the binary data stream */
     UARTCharPut(UART0_BASE, 0xf0);
@@ -447,7 +453,7 @@ Int app(Int argc, Char* argv[])
     UARTCharPut(UART0_BASE, 0xca);
     UARTCharPut(UART0_BASE, 0xfe);
 
-    enablePwm(pwmFreqHz, 1 /* % */);
+    enablePwm(PWM_FREQ_HZ, 1 /* % */);
 
     startADCandProfileGen();
     return 0;
