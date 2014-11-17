@@ -302,6 +302,8 @@ static Void initProfileGen(UInt32 samplesPerSec)
     TimerPrescaleSet(TIMER1_BASE, TIMER_A, prescaler);
     TimerLoadSet(TIMER1_BASE, TIMER_A, period);
     TimerIntEnable(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
+
+    initPwm(PWM_FREQ_HZ, 1 /* % */);
 }
 
 Void onProfileTick(UArg arg)
@@ -453,8 +455,8 @@ Int app(Int argc, Char* argv[])
     UARTCharPut(UART0_BASE, 0xca);
     UARTCharPut(UART0_BASE, 0xfe);
 
-    enablePwm(PWM_FREQ_HZ, 1 /* % */);
-
+    /* TODO: synchronize timers */
+    startPwm();
     startADCandProfileGen();
     return 0;
 }
