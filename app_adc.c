@@ -39,7 +39,9 @@ uint8_t dmaControlTable[1024] __attribute__ ((aligned(1024)));
 
 #define NUM_ADCS 2
 #define NUM_SAMPLE_BUFFERS 2
-#define SAMPLE_BUFFER_SIZE 128
+// NOTE: Max uDMA transfer is 1024 bytes => max sample sequences per buf is 32
+#define SAMPLE_BUFFER_SIZE 32 // sample seqs (1 seq = SAMPLE_SEQ_LEN samples)
+#define SAMPLE_HEADER_SIZE 1  // sample seqs (1 seq = SAMPLE_SEQ_LEN samples)
 #define SAMPLE_SEQ_LEN 8
 #define SAMPLE_SIZE 2 /* bytes */
 
@@ -48,8 +50,15 @@ enum BufferState {
     BUFFER_FULL,
 };
 
-static UInt16 samples[NUM_SAMPLE_BUFFERS][NUM_ADCS][SAMPLE_BUFFER_SIZE][SAMPLE_SEQ_LEN];
+static UInt16 samples[NUM_SAMPLE_BUFFERS]
+                     [NUM_ADCS]
+                     [SAMPLE_BUFFER_SIZE]
+                     [SAMPLE_SEQ_LEN];
+
 static enum BufferState bufferState[NUM_ADCS][NUM_SAMPLE_BUFFERS];
+
+static const UInt32 marker = 0xf00dcafe;
+static UInt32 bufferSeqNum = 0;
 
 /* index of buffer currently being transferred to UART */
 static Int readingBufIdx = -1; 
@@ -97,6 +106,19 @@ static inline UInt32 adcChanAddr(Int adc)
     return ~0; /* unreachable */
 }
 
+static inline UInt writeUInt32(UChar *buf, UInt32 n)
+{
+    buf[3] = n & 0xff;
+    n >>= 8;
+    buf[2] = n & 0xff;
+    n >>= 8;
+    buf[1] = n & 0xff;
+    n >>= 8;
+    buf[0] = n & 0xff;
+    n >>= 8;
+    return 4;
+}
+
 #if 0
 static inline float singleAdcToV(UInt32 adcOut)
 {
@@ -122,12 +144,13 @@ static Void setupDMAADCTransfer(Int adc, UInt32 controlSelect, Int bufIdx)
 {
     UInt adcBase = adcBaseAddr(adc);
     UInt adcChan = adcChanAddr(adc);
+
     uDMAChannelTransferSet(adcChan | controlSelect,
-                           UDMA_MODE_PINGPONG,
-                           (void *)(adcBase + ADC_SEQ +
-                               ADC_SEQ_STEP * ADC_SEQUENCER_IDX + ADC_SSFIFO),
-                           samples[bufIdx][adc],
-                           SAMPLE_BUFFER_SIZE * SAMPLE_SEQ_LEN);
+        UDMA_MODE_PINGPONG,
+        (void *)(adcBase + ADC_SEQ +
+            ADC_SEQ_STEP * ADC_SEQUENCER_IDX + ADC_SSFIFO),
+        (UInt16 *)samples[bufIdx][adc] + SAMPLE_HEADER_SIZE * SAMPLE_SEQ_LEN,
+        (SAMPLE_BUFFER_SIZE - SAMPLE_HEADER_SIZE) * SAMPLE_SEQ_LEN);
 }
 
 static Void initADCDMA(int adc)
@@ -400,14 +423,22 @@ Void onDMAError(UArg arg)
 static Void startBufferTransfer(Int idx)
 {
     Int adc;
+    UChar *adcBuf;
 
     GPIO_write(EK_TM4C123GXL_LED_GREEN, Board_LED_ON);
 
-    for (adc = 0; adc < NUM_ADCS; ++adc)
+    for (adc = 0; adc < NUM_ADCS; ++adc) {
         Assert_isTrue(bufferState[adc][idx] == BUFFER_FULL, NULL);
 
+        /* Write header */
+        adcBuf = (UChar *)&samples[idx][adc][0];
+        adcBuf += writeUInt32(adcBuf, marker);
+        adcBuf += writeUInt32(adcBuf, bufferSeqNum++);
+    }
+
     uDMAChannelTransferSet(UDMA_CHANNEL_UART0TX | UDMA_PRI_SELECT,
-       UDMA_MODE_BASIC, samples[idx],
+       UDMA_MODE_BASIC,
+       samples[idx],
        (void *)(UART0_BASE + UART_O_DR),
        NUM_ADCS * SAMPLE_BUFFER_SIZE * SAMPLE_SEQ_LEN * SAMPLE_SIZE);
     uDMAChannelEnable(UDMA_CHANNEL_UART0TX);
@@ -448,12 +479,6 @@ Int app(Int argc, Char* argv[])
     initOutputDMA();
     initADC(SAMPLES_PER_SEC);
     initProfileGen(PROFILE_TICKS_PER_SEC);
-
-    /* Marker for the parser to lock in on the binary data stream */
-    UARTCharPut(UART0_BASE, 0xf0);
-    UARTCharPut(UART0_BASE, 0x0d);
-    UARTCharPut(UART0_BASE, 0xca);
-    UARTCharPut(UART0_BASE, 0xfe);
 
     /* TODO: synchronize timers */
     startPwm();
