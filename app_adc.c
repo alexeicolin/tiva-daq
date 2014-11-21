@@ -283,11 +283,8 @@ static Void processBuffer(UInt32 adc, UInt32 controlSelect, Int idx)
             break;
         }
     }
-    if (allADCsFull) {
-        readingBufIdx = idx;
+    if (allADCsFull)
         startBufferTransfer(idx);
-    }
-
 }
 
 Void onSampleTransferComplete(UArg arg)
@@ -426,6 +423,8 @@ static Void startBufferTransfer(Int idx)
     UChar *adcBuf;
 
     GPIO_write(EK_TM4C123GXL_LED_GREEN, Board_LED_ON);
+
+    readingBufIdx = idx;
 
     for (adc = 0; adc < NUM_ADCS; ++adc) {
         Assert_isTrue(bufferState[adc][idx] == BUFFER_FULL, NULL);
