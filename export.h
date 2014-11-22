@@ -3,8 +3,26 @@
 
 #include <xdc/std.h>
 
+#define EXPBUF_HEADER_MARKER_SIZE 4
+#define EXPBUF_HEADER_SIZE_SIZE   2
+#define EXPBUF_HEADER_IDX_SIZE    1
+#define EXPBUF_HEADER_SEQ_SIZE    1
+
+#define EXPBUF_FIXED_HEADER_SIZE ( \
+    EXPBUF_HEADER_MARKER_SIZE    + \
+    EXPBUF_HEADER_SIZE_SIZE      + \
+    EXPBUF_HEADER_IDX_SIZE       + \
+    EXPBUF_HEADER_SEQ_SIZE         \
+)
+
+#define EXPBUF_VAR_HEADER_SIZE   ( \
+    EXPBUF_HEADER_SEQ_SIZE         \
+)
+
+#define EXPBUF_HEADER_SIZE (EXPBUF_FIXED_HEADER_SIZE + EXPBUF_VAR_HEADER_SIZE)
+
 struct ExportBuffer {
-    UChar *addr;
+    UInt8 *addr;
     UInt16 size;
     Bool full;
 };

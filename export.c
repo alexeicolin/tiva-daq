@@ -33,27 +33,30 @@ static struct ExportBuffer *curExpBuffer = NULL;
 static const UInt32 marker = 0xf00dcafe;
 static UInt32 bufferSeqNum = 0;
 
-static inline UInt writeUInt32(UChar *buf, UInt32 n)
-{
-    buf[3] = n & 0xff;
-    n >>= 8;
-    buf[2] = n & 0xff;
-    n >>= 8;
-    buf[1] = n & 0xff;
-    n >>= 8;
-    buf[0] = n & 0xff;
-    n >>= 8;
-    return 4;
-}
-
-static inline UInt uartWriteUInt(Int bytes, UInt32 n)
+static inline UInt bufWriteUInt(UInt8 *buf, UInt32 n, Int bytes)
 {
     Int i;
-    for (i = 0; i < bytes; ++i) {
-        UARTCharPut(UART0_BASE, n & 0xff);
+    for (i = bytes - 1; i >= 0; --i) {
+        buf[i] = n & 0xff;
         n >>= 8;
     }
     return bytes;
+}
+
+static Void bufWriteFixedHeader(UInt8 *buf, UInt8 idx, UInt16 size)
+{
+    UInt8 *bufp = buf;
+    bufp += bufWriteUInt(bufp, marker, EXPBUF_HEADER_MARKER_SIZE);
+    bufp += bufWriteUInt(bufp, size, EXPBUF_HEADER_SIZE_SIZE);
+    bufp += bufWriteUInt(bufp, idx, EXPBUF_HEADER_IDX_SIZE);
+    Assert_isTrue(bufp - buf <= EXPBUF_FIXED_HEADER_SIZE, NULL);
+}
+
+static inline Void bufWriteVarHeader(UInt8 *buf)
+{
+    UInt8 *bufp = buf + EXPBUF_FIXED_HEADER_SIZE;
+    bufp += bufWriteUInt(bufp, bufferSeqNum++, EXPBUF_HEADER_SEQ_SIZE);
+    Assert_isTrue(bufp - buf <= EXPBUF_HEADER_SIZE, NULL);
 }
 
 static Void initUART()
@@ -70,12 +73,14 @@ static Void initUART()
 
 Void initExport(struct ExportBuffer *expBufferList)
 {
+    Int i = 0;
     struct ExportBuffer *expBuffer = expBufferList;
 
     expBuffers = expBufferList;
 
     while (expBuffer->addr) {
         Assert_isTrue(expBuffer->size <= MAX_UDMA_TRANSFER_SIZE, NULL);
+        bufWriteFixedHeader(expBuffer->addr, i++, expBuffer->size);
         expBuffer++;
     }
 
@@ -106,16 +111,9 @@ Void initExport(struct ExportBuffer *expBufferList)
                           UDMA_ARB_4);
 }
 
-Void uartWriteHeader(UInt8 idx)
-{
-    uartWriteUInt(marker, 4);
-    uartWriteUInt(bufferSeqNum++, 2);
-    uartWriteUInt(idx, 1);
-}
-
 Void processBuffers(UArg arg)
 {
-    Int i, x;
+    Int i;
     struct ExportBuffer *expBuffer;
 
     /* If not currently transfering, look for a full buffer to transfer */
@@ -133,10 +131,7 @@ Void processBuffers(UArg arg)
             /* Turn on LED to indicate start of transfer */
             GPIO_write(EK_TM4C123GXL_LED_GREEN, Board_LED_ON);
 
-             /* We could require header space in the export buffers, and
-             * transfer both header and contents using one DMA transfer,
-             * but the performance difference is probably small. */
-            //uartWriteHeader(i);
+            bufWriteVarHeader(expBuffer->addr);
 
             uDMAChannelTransferSet(UDMA_CHANNEL_UART0TX | UDMA_PRI_SELECT,
                UDMA_MODE_BASIC,

@@ -38,22 +38,20 @@
 #define CONCATU3(a, b, c) CONCATU3_INNER(a, b, c)
 
 #define NUM_ADCS 2
-#define NUM_SAMPLE_BUFFERS 2
+#define NUM_BUFFERS_PER_ADC 2
 #define SAMPLE_SEQ_LEN 8 /* samples */
 #define SAMPLE_SIZE 2    /* bytes */
-#define SAMPLE_BUFFER_SIZE 16 /* in sample seqs (1 seq = SAMPLE_SEQ_LEN samples) */
-#define SAMPLE_BUFFER_SIZE_BYTES (SAMPLE_BUFFER_SIZE * SAMPLE_SEQ_LEN * SAMPLE_SIZE)
+#define SAMPLE_BUFFER_SIZE 1024
+#define NUM_SAMPLES_PER_BUFFER \
+    (SAMPLE_BUFFER_SIZE - EXPBUF_HEADER_SIZE) / SAMPLE_SIZE
 
-static UInt16 samples[NUM_ADCS]
-                     [NUM_SAMPLE_BUFFERS]
-                     [SAMPLE_BUFFER_SIZE]
-                     [SAMPLE_SEQ_LEN];
+static UInt8 samples[NUM_ADCS][NUM_BUFFERS_PER_ADC][SAMPLE_BUFFER_SIZE];
 
-static struct ExportBuffer expBuffers[] = {
-    { (UChar *)&samples[0][0], SAMPLE_BUFFER_SIZE_BYTES },
-    { (UChar *)&samples[0][1], SAMPLE_BUFFER_SIZE_BYTES },
-    { (UChar *)&samples[1][0], SAMPLE_BUFFER_SIZE_BYTES },
-    { (UChar *)&samples[1][1], SAMPLE_BUFFER_SIZE_BYTES },
+static struct ExportBuffer expBuffers[] = { /* size includes header */
+    { samples[0][0], SAMPLE_BUFFER_SIZE },
+    { samples[0][1], SAMPLE_BUFFER_SIZE },
+    { samples[1][0], SAMPLE_BUFFER_SIZE },
+    { samples[1][1], SAMPLE_BUFFER_SIZE },
     { NULL, 0 }
 };
 
@@ -67,6 +65,7 @@ static struct ExportBuffer expBuffers[] = {
 #define NUM_PROFILES 2
 
 #define ADC_SEQUENCER_IDX 0
+#define UDMA_ARB_SIZE CONCAT(UDMA_ARB_, SAMPLE_SEQ_LEN)
 
 // The names in driverlip/udma.h are irregular, so fix them up
 #define UDMA_CHANNEL_ADC_0_0 UDMA_CHANNEL_ADC0
@@ -130,8 +129,8 @@ static Void setupDMAADCTransfer(Int adc, UInt32 controlSelect, Int bufIdx)
         UDMA_MODE_PINGPONG,
         (void *)(adcBase + ADC_SEQ +
             ADC_SEQ_STEP * ADC_SEQUENCER_IDX + ADC_SSFIFO),
-        (UInt16 *)samples[adc][bufIdx],
-        SAMPLE_BUFFER_SIZE * SAMPLE_SEQ_LEN);
+        (UInt8 *)samples[adc][bufIdx] + EXPBUF_HEADER_SIZE,
+        NUM_SAMPLES_PER_BUFFER);
 }
 
 static Void initADCDMA(int adc)
@@ -150,10 +149,10 @@ static Void initADCDMA(int adc)
     uDMAChannelAttributeDisable(adcChan, UDMA_ATTR_HIGH_PRIORITY);
     uDMAChannelControlSet(adcChan | UDMA_PRI_SELECT,
                           UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 |
-                          UDMA_ARB_8);
+                          UDMA_ARB_SIZE);
     uDMAChannelControlSet(adcChan | UDMA_ALT_SELECT,
                           UDMA_SIZE_16 | UDMA_SRC_INC_NONE | UDMA_DST_INC_16 |
-                          UDMA_ARB_8);
+                          UDMA_ARB_SIZE);
     setupDMAADCTransfer(adc, UDMA_PRI_SELECT, 0);
     setupDMAADCTransfer(adc, UDMA_ALT_SELECT, 1);
 
@@ -256,7 +255,7 @@ static Void processBuffer(UInt32 adc, UInt32 controlSelect, Int idx)
     /* Setup the next transfer into this buffer that was just filled */
     setupDMAADCTransfer(adc, controlSelect, idx);
 
-    exportBuffer(adc * NUM_SAMPLE_BUFFERS + idx); /* buffer index */
+    exportBuffer(adc * NUM_BUFFERS_PER_ADC + idx); /* buffer index */
 }
 
 Void onSampleTransferComplete(UArg arg)
