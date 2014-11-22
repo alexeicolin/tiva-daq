@@ -452,6 +452,8 @@ Void onBufferTransferComplete(UArg arg)
     status = UARTIntStatus(UART0_BASE, 1);
     UARTIntClear(UART0_BASE, status);
 
+    Assert_isTrue(readingBufIdx >= 0, NULL);
+
     /* Disabled channel means transfer is done */
     Assert_isTrue(!uDMAChannelIsEnabled(UDMA_CHANNEL_UART0TX), NULL);
 
