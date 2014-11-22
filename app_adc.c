@@ -64,7 +64,7 @@ static UInt32 bufferSeqNum = 0;
 static Int readingBufIdx = -1; 
 
 #define PROFILE_TICKS_PER_SEC     10
-#define SAMPLES_PER_SEC          100
+#define SAMPLES_PER_SEC           10
 #define PWM_FREQ_HZ           100000
 
 #define PROFILE_LED_BLINK_RATE_TICKS (PROFILE_TICKS_PER_SEC / 2) /* 0.5 sec */
@@ -181,7 +181,8 @@ static Void initADCDMA(int adc)
 
 static Void initADC(UInt32 samplesPerSec)
 {
-    UInt32 divisor = 16; /* appropriate for 100 to 100k samples/sec */
+    //UInt32 divisor = 16; /* appropriate for 100 to 100k samples/sec */
+    UInt32 divisor = 128; /* appropriate for 10 to 10k samples/sec */
     UInt32 prescaler = divisor - 1;
     UInt32 period = SysCtlClockGet() / divisor / samplesPerSec;
 
@@ -191,7 +192,8 @@ static Void initADC(UInt32 samplesPerSec)
      * For example, for divisor 16:
      * 80MHz/16/100 = 50000 and 80MHz/16/100000 = 50 */
     /* TODO: calculate divisor automatically */
-    Assert_isTrue(samplesPerSec >= 100 && samplesPerSec <= 100000, NULL);
+    //Assert_isTrue(samplesPerSec >= 100 && samplesPerSec <= 100000, NULL);
+    Assert_isTrue(samplesPerSec >= 10 && samplesPerSec <= 10000, NULL);
     Assert_isTrue(SysCtlClockGet() % divisor == 0, NULL);
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
