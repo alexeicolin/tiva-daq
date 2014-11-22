@@ -26,6 +26,8 @@
 #include "debounce.h"
 #include "pwm.h"
 #include "profiles.h"
+#include "dma.h"
+#include "export.h"
 #include "Board.h"
 
 #define CONCAT_INNER(a, b) a ## b
@@ -35,33 +37,25 @@
 #define CONCATU3_INNER(a, b, c) a ## _ ## b ## _ ## c
 #define CONCATU3(a, b, c) CONCATU3_INNER(a, b, c)
 
-uint8_t dmaControlTable[1024] __attribute__ ((aligned(1024)));
-
 #define NUM_ADCS 2
 #define NUM_SAMPLE_BUFFERS 2
-// NOTE: Max uDMA transfer is 1024 bytes => max sample sequences per buf is 32
-#define SAMPLE_BUFFER_SIZE 32 // sample seqs (1 seq = SAMPLE_SEQ_LEN samples)
-#define SAMPLE_HEADER_SIZE 1  // sample seqs (1 seq = SAMPLE_SEQ_LEN samples)
-#define SAMPLE_SEQ_LEN 8
-#define SAMPLE_SIZE 2 /* bytes */
+#define SAMPLE_SEQ_LEN 8 /* samples */
+#define SAMPLE_SIZE 2    /* bytes */
+#define SAMPLE_BUFFER_SIZE 16 /* in sample seqs (1 seq = SAMPLE_SEQ_LEN samples) */
+#define SAMPLE_BUFFER_SIZE_BYTES (SAMPLE_BUFFER_SIZE * SAMPLE_SEQ_LEN * SAMPLE_SIZE)
 
-enum BufferState {
-    BUFFER_FREE,
-    BUFFER_FULL,
-};
-
-static UInt16 samples[NUM_SAMPLE_BUFFERS]
-                     [NUM_ADCS]
+static UInt16 samples[NUM_ADCS]
+                     [NUM_SAMPLE_BUFFERS]
                      [SAMPLE_BUFFER_SIZE]
                      [SAMPLE_SEQ_LEN];
 
-static enum BufferState bufferState[NUM_ADCS][NUM_SAMPLE_BUFFERS];
-
-static const UInt32 marker = 0xf00dcafe;
-static UInt32 bufferSeqNum = 0;
-
-/* index of buffer currently being transferred to UART */
-static Int readingBufIdx = -1; 
+static struct ExportBuffer expBuffers[] = {
+    { (UChar *)&samples[0][0], SAMPLE_BUFFER_SIZE_BYTES },
+    { (UChar *)&samples[0][1], SAMPLE_BUFFER_SIZE_BYTES },
+    { (UChar *)&samples[1][0], SAMPLE_BUFFER_SIZE_BYTES },
+    { (UChar *)&samples[1][1], SAMPLE_BUFFER_SIZE_BYTES },
+    { NULL, 0 }
+};
 
 #define PROFILE_TICKS_PER_SEC     10
 #define SAMPLES_PER_SEC           10
@@ -106,19 +100,6 @@ static inline UInt32 adcChanAddr(Int adc)
     return ~0; /* unreachable */
 }
 
-static inline UInt writeUInt32(UChar *buf, UInt32 n)
-{
-    buf[3] = n & 0xff;
-    n >>= 8;
-    buf[2] = n & 0xff;
-    n >>= 8;
-    buf[1] = n & 0xff;
-    n >>= 8;
-    buf[0] = n & 0xff;
-    n >>= 8;
-    return 4;
-}
-
 #if 0
 static inline float singleAdcToV(UInt32 adcOut)
 {
@@ -149,8 +130,8 @@ static Void setupDMAADCTransfer(Int adc, UInt32 controlSelect, Int bufIdx)
         UDMA_MODE_PINGPONG,
         (void *)(adcBase + ADC_SEQ +
             ADC_SEQ_STEP * ADC_SEQUENCER_IDX + ADC_SSFIFO),
-        (UInt16 *)samples[bufIdx][adc] + SAMPLE_HEADER_SIZE * SAMPLE_SEQ_LEN,
-        (SAMPLE_BUFFER_SIZE - SAMPLE_HEADER_SIZE) * SAMPLE_SEQ_LEN);
+        (UInt16 *)samples[adc][bufIdx],
+        SAMPLE_BUFFER_SIZE * SAMPLE_SEQ_LEN);
 }
 
 static Void initADCDMA(int adc)
@@ -265,50 +246,40 @@ static Void initADC(UInt32 samplesPerSec)
 
 static Void startADCandProfileGen()
 {
+    /* TODO: synchronize timers */
+    //startPwm();
     TimerEnable(TIMER1_BASE, TIMER_BOTH);
 }
 
 static Void processBuffer(UInt32 adc, UInt32 controlSelect, Int idx)
 {
-    Int adcIdx;
-    Bool allADCsFull = TRUE;
-    Assert_isTrue(bufferState[adc][idx] == BUFFER_FREE, NULL);
-    bufferState[adc][idx] = BUFFER_FULL;
-
-    // Setup the next transfer into this buffer that was just filled
+    /* Setup the next transfer into this buffer that was just filled */
     setupDMAADCTransfer(adc, controlSelect, idx);
 
-    // Launch UART transfer if all ADCs filled their buffer ready
-    for (adcIdx = 0; adcIdx < NUM_ADCS; ++adcIdx) {
-        if (bufferState[adcIdx][idx] != BUFFER_FULL) {
-            allADCsFull = FALSE;
-            break;
-        }
-    }
-    if (allADCsFull)
-        startBufferTransfer(idx);
+    exportBuffer(adc * NUM_SAMPLE_BUFFERS + idx); /* buffer index */
 }
 
 Void onSampleTransferComplete(UArg arg)
 {
-    UInt key;
     UInt adc = (UInt)arg;
     UInt adcBase = adcBaseAddr(adc);
     UInt adcChan = adcChanAddr(adc);
+    Bool primaryMode, altMode;
 
     UInt32 status = ADCIntStatusEx(adcBase, TRUE);
     ADCIntClearEx(adcBase, status);
 
-    /* Protect the check of whether both ADCs are ready: prevent the other ADC
-     * from interrupting while we do the check */
-    key = Hwi_disable();
+    primaryMode = uDMAChannelModeGet(adcChan | UDMA_PRI_SELECT);
+    altMode = uDMAChannelModeGet(adcChan | UDMA_ALT_SELECT);
 
-    if (uDMAChannelModeGet(adcChan | UDMA_PRI_SELECT) == UDMA_MODE_STOP)
+    /* If both have stopped, then we didn't process them in time */
+    Assert_isTrue(!(primaryMode == UDMA_MODE_STOP &&
+                    altMode == UDMA_MODE_STOP), NULL);
+
+    if (primaryMode == UDMA_MODE_STOP)
         processBuffer(adc, UDMA_PRI_SELECT, 0);
-    if (uDMAChannelModeGet(adcChan | UDMA_ALT_SELECT) == UDMA_MODE_STOP)
+    if (altMode == UDMA_MODE_STOP)
         processBuffer(adc, UDMA_ALT_SELECT, 1);
-
-    Hwi_restore(key);
 }
 
 static Void initProfileGen(UInt32 samplesPerSec)
@@ -373,45 +344,6 @@ Void onProfileTick(UArg arg)
     ticks++;
 }
 
-static Void initUART()
-{
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
-    GPIOPinConfigure(GPIO_PA0_U0RX);
-    GPIOPinConfigure(GPIO_PA1_U0TX);
-    GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
-    UARTConfigSetExpClk(UART0_BASE, SysCtlClockGet(), 115200,
-                        UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
-                        UART_CONFIG_PAR_NONE);
-}
-
-static Void initOutputDMA()
-{
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
-    IntEnable(INT_UDMAERR);
-    uDMAEnable();
-    uDMAControlBaseSet(dmaControlTable);
-
-    // Set both the TX and RX trigger thresholds to 4.  This will be used by
-    // the uDMA controller to signal when more data should be transferred.  The
-    // uDMA TX and RX channels will be configured so that it can transfer 4
-    // bytes in a burst when the UART is ready to transfer more data.
-    UARTFIFOLevelSet(UART0_BASE, UART_FIFO_TX4_8, UART_FIFO_RX4_8);
-    UARTDMAEnable(UART0_BASE, UART_DMA_TX);
-    IntEnable(INT_UART0);
-
-    uDMAChannelAttributeDisable(UDMA_CHANNEL_UART0TX,
-                                UDMA_ATTR_ALTSELECT |
-                                UDMA_ATTR_HIGH_PRIORITY |
-                                UDMA_ATTR_REQMASK);
-    uDMAChannelAttributeEnable(UDMA_CHANNEL_UART0TX, UDMA_ATTR_USEBURST);
-
-    uDMAChannelAttributeEnable(UDMA_CHANNEL_UART0TX, UDMA_ATTR_USEBURST);
-    uDMAChannelControlSet(UDMA_CHANNEL_UART0TX | UDMA_PRI_SELECT,
-                          UDMA_SIZE_8 | UDMA_SRC_INC_8 | UDMA_DST_INC_NONE |
-                          UDMA_ARB_4);
-}
-
 Void onDMAError(UArg arg)
 {
     UInt32 status = uDMAErrorStatusGet();
@@ -419,73 +351,16 @@ Void onDMAError(UArg arg)
     uDMAErrorStatusClear();
 }
 
-static Void startBufferTransfer(Int idx)
-{
-    Int adc;
-    UChar *adcBuf;
-
-    GPIO_write(EK_TM4C123GXL_LED_GREEN, Board_LED_ON);
-
-    readingBufIdx = idx;
-
-    for (adc = 0; adc < NUM_ADCS; ++adc) {
-        Assert_isTrue(bufferState[adc][idx] == BUFFER_FULL, NULL);
-
-        /* Write header */
-        adcBuf = (UChar *)&samples[idx][adc][0];
-        adcBuf += writeUInt32(adcBuf, marker);
-        adcBuf += writeUInt32(adcBuf, bufferSeqNum++);
-    }
-
-    uDMAChannelTransferSet(UDMA_CHANNEL_UART0TX | UDMA_PRI_SELECT,
-       UDMA_MODE_BASIC,
-       samples[idx],
-       (void *)(UART0_BASE + UART_O_DR),
-       NUM_ADCS * SAMPLE_BUFFER_SIZE * SAMPLE_SEQ_LEN * SAMPLE_SIZE);
-    uDMAChannelEnable(UDMA_CHANNEL_UART0TX);
-}
-
-Void onBufferTransferComplete(UArg arg)
-{
-    Int adc;
-    UInt32 status;
-    status = UARTIntStatus(UART0_BASE, 1);
-
-    Assert_isTrue(readingBufIdx >= 0, NULL);
-
-    /* Disabled channel means transfer is done */
-    Assert_isTrue(!uDMAChannelIsEnabled(UDMA_CHANNEL_UART0TX), NULL);
-
-    for (adc = 0; adc < NUM_ADCS; ++adc) {
-        Assert_isTrue(bufferState[adc][readingBufIdx] == BUFFER_FULL, NULL);
-        bufferState[adc][readingBufIdx] = BUFFER_FREE;
-    }
-    readingBufIdx = -1;
-
-    GPIO_write(EK_TM4C123GXL_LED_GREEN, Board_LED_OFF);
-
-    UARTIntClear(UART0_BASE, status);
-}
-
 Int app(Int argc, Char* argv[])
 {
-    Int i, j;
-
-    for (i = 0; i < NUM_ADCS; ++i)
-        for (j = 0; j < NUM_SAMPLE_BUFFERS; ++j)
-            bufferState[i][j] = BUFFER_FREE;
-
     Assert_isTrue(NUM_PROFILES == numProfiles, NULL);
     convertProfileToTicks(PROFILE_TICKS_PER_SEC);
 
+    initExport(expBuffers);
     initADCandProfileGenTimers();
-    initUART();
-    initOutputDMA();
     initADC(SAMPLES_PER_SEC);
     initProfileGen(PROFILE_TICKS_PER_SEC);
 
-    /* TODO: synchronize timers */
-    startPwm();
     startADCandProfileGen();
     return 0;
 }
