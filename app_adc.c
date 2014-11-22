@@ -450,7 +450,6 @@ Void onBufferTransferComplete(UArg arg)
     Int adc;
     UInt32 status;
     status = UARTIntStatus(UART0_BASE, 1);
-    UARTIntClear(UART0_BASE, status);
 
     Assert_isTrue(readingBufIdx >= 0, NULL);
 
@@ -464,6 +463,8 @@ Void onBufferTransferComplete(UArg arg)
     readingBufIdx = -1;
 
     GPIO_write(EK_TM4C123GXL_LED_GREEN, Board_LED_OFF);
+
+    UARTIntClear(UART0_BASE, status);
 }
 
 Int app(Int argc, Char* argv[])
