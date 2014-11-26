@@ -10,24 +10,7 @@
 #define MAX_SAMPLES_IN_SEQ 8
 #define NUM_BUFS_PER_SEQ 2
 
-/* Defining our own in order to have 0 as invalid value */
-enum AdcSample {
-    ADC_SAMPLE_NONE = 0,
-    ADC_SAMPLE_CH0,
-    ADC_SAMPLE_CH1,
-    ADC_SAMPLE_CH2,
-    ADC_SAMPLE_CH3,
-    ADC_SAMPLE_CH4,
-    ADC_SAMPLE_CH5,
-    ADC_SAMPLE_CH6,
-    ADC_SAMPLE_CH7,
-    ADC_SAMPLE_CH8,
-    ADC_SAMPLE_CH9,
-    ADC_SAMPLE_CH10,
-    ADC_SAMPLE_CH11,
-    ADC_SAMPLE_CH12,
-    ADC_SAMPLE_TEMP
-};
+#define ADC_SEQ_END ~0 /* an invalid ADC_CTL_ value (note 0 is taken) */
 
 struct SequenceBuffer {
     UInt8 *addr;
@@ -35,7 +18,7 @@ struct SequenceBuffer {
 };
 
 struct SequenceConfig {
-    enum AdcSample samples[MAX_SAMPLES_IN_SEQ];
+    UInt32 samples[MAX_SAMPLES_IN_SEQ];
     struct SequenceBuffer buf;
 };
 

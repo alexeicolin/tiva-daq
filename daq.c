@@ -283,7 +283,7 @@ static UInt initADCSequence(Int adc, Int seq)
     ADCSequenceDisable(adcBase, seq);
     ADCSequenceConfigure(adcBase, seq, ADC_TRIGGER_TIMER, priority);
 
-    for (sample = 0; seqConf->samples[sample]; ++sample) {
+    for (sample = 0; seqConf->samples[sample] != ADC_SEQ_END; ++sample) {
         sampleChan = seqConf->samples[sample];
         if (sample == MAX_SAMPLES_IN_SEQ - 1 || !seqConf->samples[sample + 1])
             sampleChan |= ADC_CTL_IE | ADC_CTL_END;
