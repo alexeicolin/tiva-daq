@@ -358,9 +358,11 @@ static Void initADC(UInt32 samplesPerSec)
     for (adc = 0; adc < NUM_ADCS; ++adc) {
         SysCtlPeripheralEnable(adcDevices[adc].periph);
         for (seq = 0; seq < NUM_SEQS; ++seq) {
-            initADCHwi(adc, seq);
-            seqLen = initADCSequence(adc, seq);
-            initADCDMA(adc, seq, seqLen);
+            if (adcConfig->seqs[adc][seq].enabled) {
+                initADCHwi(adc, seq);
+                seqLen = initADCSequence(adc, seq);
+                initADCDMA(adc, seq, seqLen);
+            }
         }
     }
 

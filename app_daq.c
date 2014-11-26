@@ -60,6 +60,7 @@ static const struct AdcConfig adcConfig = {
     {
         {
             [1] = {
+                    TRUE, /* enabled */
                     0, /* priority */
                     {
                         ADC_CTL_CH0,
@@ -73,6 +74,7 @@ static const struct AdcConfig adcConfig = {
         },
         {
             [2] = {
+                    TRUE, /* enabled */
                     0, /* priority */
                     {
                         ADC_CTL_CH0,

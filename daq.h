@@ -18,6 +18,7 @@ struct SequenceBuffer {
 };
 
 struct SequenceConfig {
+    Bool enabled;
     UInt8 priority;
     UInt32 samples[MAX_SAMPLES_IN_SEQ];
     struct SequenceBuffer buf;
