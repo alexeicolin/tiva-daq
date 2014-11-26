@@ -373,7 +373,6 @@ static Void initADC(UInt32 samplesPerSec)
 static Void initExportBuffers()
 {
     Int adc, seq, bufIdx, i = 0;
-    UInt8 *addr;
     struct ExportBuffer *expBuf;
     const struct SequenceConfig *seqConf;
 
@@ -390,8 +389,13 @@ static Void initExportBuffers()
             }
         }
     }
+}
 
-    initExport(exportBuffers);
+static Void initExportBufferIdxMap()
+{
+    Int adc, seq, bufIdx;
+    UInt8 *addr;
+    const struct SequenceConfig *seqConf;
 
     for (adc = 0; adc < NUM_ADCS; ++adc) {
         for (seq = 0; seq < NUM_SEQS; ++seq) {
@@ -413,5 +417,8 @@ Void initDAQ(const struct AdcConfig *conf, UInt32 samplesPerSec)
     /* Rely on uDMA init done as part of export module */
 
     initExportBuffers();
+    initExport(exportBuffers);
+    initExportBufferIdxMap();
+
     initADC(samplesPerSec);
 }
