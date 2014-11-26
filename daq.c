@@ -284,7 +284,8 @@ static UInt initADCSequence(Int adc, Int seq)
 
     for (sample = 0; seqConf->samples[sample] != ADC_SEQ_END; ++sample) {
         sampleChan = seqConf->samples[sample];
-        if (sample == MAX_SAMPLES_IN_SEQ - 1 || !seqConf->samples[sample + 1])
+        if (sample == MAX_SAMPLES_IN_SEQ - 1 ||
+            seqConf->samples[sample + 1] == ADC_SEQ_END)
             sampleChan |= ADC_CTL_IE | ADC_CTL_END;
         ADCSequenceStepConfigure(adcBase, seq, sample, sampleChan);
         initAdcInputPin(sampleChan);
