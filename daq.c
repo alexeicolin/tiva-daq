@@ -382,15 +382,18 @@ static Void initExportBuffers()
 
                     expBuf->addr = seqBuf->addr + bufIdx * seqBuf->size;
                     expBuf->size = seqBuf->size;
-
-                    exportBufIdx[adc][seq][bufIdx] =
-                        findExportBufferIdx(expBuf->addr);
                 }
             }
         }
     }
 
     initExport(exportBuffers);
+
+    for (adc = 0; adc < NUM_ADCS; ++adc)
+        for (seq = 0; seq < NUM_SEQS; ++seq)
+            for (bufIdx = 0; bufIdx < NUM_BUFS_PER_SEQ; ++bufIdx)
+                exportBufIdx[adc][seq][bufIdx] =
+                    findExportBufferIdx(expBuf->addr);
 }
 
 Void initDAQ(const struct AdcConfig *conf, UInt32 samplesPerSec)
