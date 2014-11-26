@@ -170,3 +170,12 @@ Void exportBuffer(Int idx)
     expBuffers[idx].full = TRUE;
     Swi_post(exportBuffersSwi);
 }
+
+UInt8 findExportBufferIdx(UInt8 *addr)
+{
+    UInt8 i = 0;
+    while (expBuffers[i].addr && expBuffers[i].addr != addr)
+        i++;
+    Assert_isTrue(expBuffers[i].addr, NULL);
+    return i;
+}

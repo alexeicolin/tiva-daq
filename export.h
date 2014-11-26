@@ -32,5 +32,6 @@ Void initExport(struct ExportBuffer *expBufferList);
 Void processBuffers(UArg arg);
 Void onExportComplete(UArg arg);
 Void exportBuffer(Int idx);
+UInt8 findExportBufferIdx(UInt8 *addr);
 
 #endif // EXPORT_H
