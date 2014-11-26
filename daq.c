@@ -278,10 +278,9 @@ static UInt initADCSequence(Int adc, Int seq)
     const struct AdcDev *adcDev = &adcDevices[adc];
     UInt32 adcBase = adcDev->baseAddr;
     const struct SequenceConfig *seqConf = &adcConfig->seqs[adc][seq];
-    UInt32 priority = seq; /* prioritize sequencers in order of user's indexes */
 
     ADCSequenceDisable(adcBase, seq);
-    ADCSequenceConfigure(adcBase, seq, ADC_TRIGGER_TIMER, priority);
+    ADCSequenceConfigure(adcBase, seq, ADC_TRIGGER_TIMER, seqConf->priority);
 
     for (sample = 0; seqConf->samples[sample] != ADC_SEQ_END; ++sample) {
         sampleChan = seqConf->samples[sample];

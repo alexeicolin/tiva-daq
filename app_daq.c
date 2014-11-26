@@ -60,6 +60,7 @@ static const struct AdcConfig adcConfig = {
     {
         {
             [1] = {
+                    0, /* priority */
                     {
                         ADC_CTL_CH0,
                         ADC_CTL_CH1,
@@ -72,6 +73,7 @@ static const struct AdcConfig adcConfig = {
         },
         {
             [2] = {
+                    0, /* priority */
                     {
                         ADC_CTL_CH0,
                         ADC_CTL_CH1,
