@@ -159,7 +159,7 @@ static UInt8 exportBufIdx[NUM_ADCS][NUM_SEQS][NUM_BUFS_PER_SEQ];
 #define BUF_PAYLOAD_ADDR(bufAddr) (bufAddr + EXPBUF_HEADER_SIZE)
 
 /* The argument to sample transfer Hwi packs adc and seq number */
-#define ADC_HWI_ARG(adc, seq) ((UArg)((UInt32)adc << 8) & (UInt32)seq)
+#define ADC_HWI_ARG(adc, seq) ((UArg)((UInt32)adc << 8) | (UInt32)seq)
 #define ADC_FROM_ADC_HWI_ARG(arg) (((UInt32)arg >> 8) & 0xff)
 #define SEQ_FROM_ADC_HWI_ARG(arg) (((UInt32)arg >> 0) & 0xff)
 
