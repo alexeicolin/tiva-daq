@@ -15,14 +15,14 @@
 #include <driverlib/sysctl.h>
 #include <driverlib/udma.h>
 #include "driverlib/timer.h"
+#include "driverlib/adc.h"
 #include <driverlib/interrupt.h>
 
 #include "Board.h"
 
 #include "delay.h"
 #include "debounce.h"
-#include "pwm.h"
-#include "profiles.h"
+#include "profile.h"
 #include "daq.h"
 
 /* Load profile config */
@@ -30,10 +30,20 @@
 #define PROFILE_TICKS_PER_SEC     10
 #define PWM_FREQ_HZ           100000
 
-#define PROFILE_LED_BLINK_RATE_TICKS (PROFILE_TICKS_PER_SEC / 2) /* 0.5 sec */
-#define PROFILE_LED_ON_TICKS         (PROFILE_TICKS_PER_SEC / 10) /* 0.1 sec */
+struct ProfileInterval profiles[][MAX_PROFILE_LEN] = {
+    /* length (ms), duty cycle (%) */
 
-#define NUM_PROFILES 2
+    /* Profile A */
+    {
+        { 100, 50 },
+    },
+    /* Profile B */
+    {
+        { 100, 25 },
+    }
+};
+
+#define NUM_PROFILES (sizeof(profiles) / sizeof(profiles[0]))
 
 /* ADC data buffers */
 
@@ -51,10 +61,11 @@ static const struct AdcConfig adcConfig = {
         {
             [1] = {
                     {
-                        ADC_SAMPLE_CH0,
-                        ADC_SAMPLE_CH1,
-                        ADC_SAMPLE_CH2,
-                        ADC_SAMPLE_CH3
+                        ADC_CTL_CH0,
+                        ADC_CTL_CH1,
+                        ADC_CTL_CH2,
+                        ADC_CTL_CH3,
+                        ADC_SEQ_END
                     },
                     { &bufVpos[0][0], BUF_SIZE_VPOS }
             }
@@ -62,10 +73,11 @@ static const struct AdcConfig adcConfig = {
         {
             [2] = {
                     {
-                        ADC_SAMPLE_CH0,
-                        ADC_SAMPLE_CH1,
-                        ADC_SAMPLE_CH2,
-                        ADC_SAMPLE_CH3
+                        ADC_CTL_CH0,
+                        ADC_CTL_CH1,
+                        ADC_CTL_CH2,
+                        ADC_CTL_CH3,
+                        ADC_SEQ_END
                     },
                     { &bufVneg[0][0], BUF_SIZE_VNEG }
             }
@@ -73,6 +85,7 @@ static const struct AdcConfig adcConfig = {
     }
 };
 
+/* TODO: split this up somehow */
 static Void initADCandProfileGenTimers()
 {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
@@ -82,71 +95,8 @@ static Void initADCandProfileGenTimers()
 
 static Void startADCandProfileGen()
 {
-    /* TODO: synchronize timers */
-    startPwm();
     TimerEnable(TIMER1_BASE, TIMER_BOTH);
-}
-
-static Void initProfileGen(UInt32 samplesPerSec)
-{
-    /* See discurssion about prescaler in initADC */
-    UInt32 divisor = 128; /* appropriate for 10 to 1000 ticks/sec */
-    UInt32 prescaler = divisor - 1;
-    UInt32 period = SysCtlClockGet() / divisor / samplesPerSec;
-
-    Assert_isTrue(samplesPerSec >= 10 && samplesPerSec <= 1000, NULL);
-    Assert_isTrue(SysCtlClockGet() % divisor == 0, NULL);
-
-    TimerPrescaleSet(TIMER1_BASE, TIMER_A, prescaler);
-    TimerLoadSet(TIMER1_BASE, TIMER_A, period);
-    TimerIntEnable(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
-
-    initPwm(PWM_FREQ_HZ, 1 /* % */);
-}
-
-Void onProfileTick(UArg arg)
-{
-
-    /* Cursors into the profile waveform */
-    static Int intervalIdx[NUM_PROFILES] = {0};
-    static Int intervalPos[NUM_PROFILES] = {0};
-    static UInt32 ticks = 0;
-    static UInt32 ledOnTicks = 0;
-
-    Int profileIdx;
-    struct ProfileInterval *profile;
-
-    if (ticks % PROFILE_LED_BLINK_RATE_TICKS == 0 && !ledOnTicks) {
-        GPIO_write(EK_TM4C123GXL_LED_BLUE, Board_LED_ON);
-        ledOnTicks = PROFILE_LED_ON_TICKS;
-    }
-
-    for (profileIdx = 0; profileIdx < numProfiles; ++profileIdx) {
-        profile = profiles[profileIdx];
-
-        if (profile[intervalIdx[profileIdx]].value !=
-                getPwmDutyCycle(profileIdx))
-            setPwmDutyCycle(profileIdx, profile[intervalIdx[profileIdx]].value);
-
-        intervalPos[profileIdx]++;
-        if (intervalPos[profileIdx] ==
-                profile[intervalIdx[profileIdx]].length) {
-            intervalIdx[profileIdx]++;
-            if (!profile[intervalIdx[profileIdx]].length) /* last interval */
-                intervalIdx[profileIdx] = 0;
-            intervalPos[profileIdx] = 0;
-        }
-
-    }
-
-    TimerIntClear(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
-
-    if (!ledOnTicks)
-        GPIO_write(EK_TM4C123GXL_LED_BLUE, Board_LED_OFF);
-    if (ledOnTicks)
-        ledOnTicks--;
-
-    ticks++;
+    startProfileGen();
 }
 
 Void onDMAError(UArg arg)
@@ -158,12 +108,10 @@ Void onDMAError(UArg arg)
 
 Int app(Int argc, Char* argv[])
 {
-    Assert_isTrue(NUM_PROFILES == numProfiles, NULL);
-    convertProfileToTicks(PROFILE_TICKS_PER_SEC);
-
     initADCandProfileGenTimers();
     initDAQ(&adcConfig, SAMPLES_PER_SEC);
-    initProfileGen(PROFILE_TICKS_PER_SEC);
+    initProfileGen(profiles, NUM_PROFILES,
+                   PROFILE_TICKS_PER_SEC, PWM_FREQ_HZ);
 
     startADCandProfileGen();
     return 0;
