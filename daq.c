@@ -234,6 +234,8 @@ static Void onSampleTransferComplete(UArg arg)
     UInt32 status = ADCIntStatusEx(adcBase, TRUE);
     ADCIntClearEx(adcBase, status);
 
+    Assert_isTrue(!ADCSequenceUnderflow(adcBase, seq), NULL);
+
     primaryMode = uDMAChannelModeGet(seqDev->dmaChanNum | UDMA_PRI_SELECT);
     altMode = uDMAChannelModeGet(seqDev->dmaChanNum | UDMA_ALT_SELECT);
 
