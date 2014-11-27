@@ -49,16 +49,30 @@ struct ProfileInterval profiles[][MAX_PROFILE_LEN] = {
 
 #define BUF_SIZE_VPOS 1024
 #define BUF_SIZE_VNEG 1024
+#define BUF_SIZE_TEMP   16
 
 static UInt8 bufVpos[NUM_BUFS_PER_SEQ][BUF_SIZE_VPOS];
 static UInt8 bufVneg[NUM_BUFS_PER_SEQ][BUF_SIZE_VPOS];
+static UInt8 bufTemp[NUM_BUFS_PER_SEQ][BUF_SIZE_TEMP];
 
 #define SAMPLES_PER_SEC 10
+
+#define TEMP_SEQUENCER 0
 
 /* Sequencer configuration: (adc, seq) -> input samples, output buffer */
 static const struct AdcConfig adcConfig = {
     {
         {
+            [TEMP_SEQUENCER] = {
+                    TRUE, /* enabled */
+                    1, /* priority */
+                    ADC_TRIGGER_PROCESSOR,
+                    {
+                        ADC_CTL_TS,
+                        ADC_SEQ_END
+                    },
+                    { &bufTemp[0][0], BUF_SIZE_TEMP }
+            },
             [1] = {
                     TRUE, /* enabled */
                     0, /* priority */
@@ -112,6 +126,15 @@ Void onDMAError(UArg arg)
     UInt32 status = uDMAErrorStatusGet();
     Assert_isTrue(!status, NULL); /* we don't tolerate errors */
     uDMAErrorStatusClear();
+}
+
+Void sampleTemp(UArg arg)
+{
+    static Bool ledOn = FALSE;
+    GPIO_write(EK_TM4C123GXL_LED_BLUE, ledOn ? Board_LED_ON : Board_LED_OFF);
+    ledOn = !ledOn;
+
+    ADCProcessorTrigger(ADC0_BASE, TEMP_SEQUENCER);
 }
 
 Int app(Int argc, Char* argv[])
