@@ -26,6 +26,8 @@ struct SequenceConfig {
 
 struct AdcConfig {
     struct SequenceConfig seqs[NUM_ADCS][NUM_SEQS];
+    UInt32 triggerTimerBase;
+    UInt32 triggerTimerHalf;
 };
 
 Void initDAQ(const struct AdcConfig *conf, UInt32 samplesPerSec);

@@ -323,6 +323,9 @@ static Void initADCDMA(Int adc, Int seq, UInt seqLen)
 
 static Void initADCTimer(UInt32 samplesPerSec)
 {
+    UInt32 timerBase = adcConfig->triggerTimerBase;
+    UInt32 timerHalf = adcConfig->triggerTimerHalf;
+
     //UInt32 divisor = 16; /* appropriate for 100 to 100k samples/sec */
     UInt32 divisor = 128; /* appropriate for 10 to 10k samples/sec */
     UInt32 prescaler = divisor - 1;
@@ -338,9 +341,9 @@ static Void initADCTimer(UInt32 samplesPerSec)
     Assert_isTrue(samplesPerSec >= 10 && samplesPerSec <= 10000, NULL);
     Assert_isTrue(SysCtlClockGet() % divisor == 0, NULL);
 
-    TimerPrescaleSet(TIMER1_BASE, TIMER_B, prescaler);
-    TimerLoadSet(TIMER1_BASE, TIMER_B, period);
-    TimerControlTrigger(TIMER1_BASE, TIMER_B, TRUE);
+    TimerPrescaleSet(timerBase, timerHalf, prescaler);
+    TimerLoadSet(timerBase, timerHalf, period);
+    TimerControlTrigger(timerBase, timerHalf, TRUE);
 }
 
 static Void initADC(UInt32 samplesPerSec)

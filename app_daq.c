@@ -86,7 +86,9 @@ static const struct AdcConfig adcConfig = {
                     { &bufVneg[0][0], BUF_SIZE_VNEG }
             }
         }
-    }
+    },
+
+    TIMER1_BASE, TIMER_B /* trigger timer */
 };
 
 /* TODO: split this up somehow */
