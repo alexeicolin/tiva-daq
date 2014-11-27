@@ -318,10 +318,10 @@ static Void initADCDMA(Int adc, Int seq, UInt seqLen)
 
     uDMAChannelAttributeDisable(chanNum,
                                 UDMA_ATTR_ALTSELECT |
-                                UDMA_ATTR_USEBURST |
-                                UDMA_ATTR_HIGH_PRIORITY |
                                 UDMA_ATTR_REQMASK);
-    uDMAChannelAttributeDisable(chanNum, UDMA_ATTR_HIGH_PRIORITY);
+    uDMAChannelAttributeDisable(chanNum,
+                                UDMA_ATTR_HIGH_PRIORITY |
+                                UDMA_ATTR_USEBURST);
     setupDMAADCControlSet(adc, seq, UDMA_PRI_SELECT, seqLen);
     setupDMAADCControlSet(adc, seq, UDMA_ALT_SELECT, seqLen);
     setupDMAADCTransfer(adc, seq, 0);
