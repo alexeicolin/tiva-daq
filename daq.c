@@ -169,6 +169,8 @@ static UInt8 exportBufIdx[NUM_ADCS][NUM_SEQS][NUM_BUFS_PER_SEQ];
 /* Used once at init time only, so not making a lookup table */
 static inline UInt32 arbSizeFromSeqLen(UInt seqLen)
 {
+    if (seqLen == 1)
+        return UDMA_ARB_1;
     if (seqLen == 2)
         return UDMA_ARB_2;
     if (seqLen == 4)
