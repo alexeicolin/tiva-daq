@@ -62,6 +62,7 @@ static const struct AdcConfig adcConfig = {
             [1] = {
                     TRUE, /* enabled */
                     0, /* priority */
+                    ADC_TRIGGER_TIMER,
                     {
                         ADC_CTL_CH0,
                         ADC_CTL_CH1,
@@ -76,6 +77,7 @@ static const struct AdcConfig adcConfig = {
             [2] = {
                     TRUE, /* enabled */
                     0, /* priority */
+                    ADC_TRIGGER_TIMER,
                     {
                         ADC_CTL_CH0,
                         ADC_CTL_CH1,

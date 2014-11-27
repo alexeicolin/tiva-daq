@@ -280,7 +280,7 @@ static UInt initADCSequence(Int adc, Int seq)
     const struct SequenceConfig *seqConf = &adcConfig->seqs[adc][seq];
 
     ADCSequenceDisable(adcBase, seq);
-    ADCSequenceConfigure(adcBase, seq, ADC_TRIGGER_TIMER, seqConf->priority);
+    ADCSequenceConfigure(adcBase, seq, seqConf->trigger, seqConf->priority);
 
     for (sample = 0; seqConf->samples[sample] != ADC_SEQ_END; ++sample) {
         sampleChan = seqConf->samples[sample];
