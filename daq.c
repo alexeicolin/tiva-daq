@@ -66,6 +66,9 @@
 #define ADC_SEQ_INT(adc, seq) CONCAT4(INT_ADC, adc, SS, seq)
 #define ADC_SEQ_DMA_INT(seq) CONCAT(ADC_INT_DMA_SS, seq)
 
+/* Platform specific assumption: continuity and total num channels */
+#define IS_ANALOG_INPUT_CHAN(chan) (ADC_CTL_CH0 <= chan && chan <= ADC_CTL_CH11)
+
 #define ADC_DMA_CHAN(adc, seq) CONCATU3(UDMA_CHANNEL_ADC, adc, seq)
 #define ADC_DMA_CHAN_NUM(adc, seq) \
     CONCATU3(UDMA_CHANNEL_NUM_ADC, adc, seq)
@@ -288,7 +291,9 @@ static UInt initADCSequence(Int adc, Int seq)
             seqConf->samples[sample + 1] == ADC_SEQ_END)
             sampleChan |= ADC_CTL_IE | ADC_CTL_END;
         ADCSequenceStepConfigure(adcBase, seq, sample, sampleChan);
-        initAdcInputPin(seqConf->samples[sample]); /* num without flags here */
+        sampleChan = seqConf->samples[sample]; /* without end flags */
+        if (IS_ANALOG_INPUT_CHAN(sampleChan))
+            initAdcInputPin(sampleChan);
     }
 
     ADCSequenceEnable(adcBase, seq);
