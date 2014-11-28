@@ -26,6 +26,9 @@
 #include "profile.h"
 #include "daq.h"
 
+/* Choose an event to blink the blue LED on */
+#define BLINK_LED_ON_TEMP_SAMPLE
+
 /* Load profile config */
 
 #define PROFILE_TICKS_PER_SEC     10
@@ -138,9 +141,11 @@ Void onDMAError(UArg arg)
 
 Void sampleTemp(UArg arg)
 {
+#ifdef BLINK_LED_ON_TEMP_SAMPLE
     static Bool ledOn = FALSE;
     GPIO_write(EK_TM4C123GXL_LED_BLUE, ledOn ? Board_LED_ON : Board_LED_OFF);
     ledOn = !ledOn;
+#endif
 
     ADCProcessorTrigger(ADC0_BASE, TEMP_SEQUENCER);
 }
