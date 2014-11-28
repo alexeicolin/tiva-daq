@@ -21,17 +21,6 @@
 
 #include "daq.h"
 
-#define CONCAT_INNER(a, b) a ## b
-#define CONCAT(a, b) CONCAT_INNER(a, b)
-#define CONCAT3_INNER(a, b, c) a ## b ## c
-#define CONCAT3(a, b, c) CONCAT3_INNER(a, b, c)
-#define CONCAT4_INNER(a, b, c, d) a ## b ## c ## d
-#define CONCAT4(a, b, c, d) CONCAT4_INNER(a, b, c, d)
-#define CONCAT6_INNER(a, b, c, d, e, f) a ## b ## c ## d ## e ## f
-#define CONCAT6(a, b, c, d, e, f) CONCAT6_INNER(a, b, c, d, e, f)
-#define CONCATU3_INNER(a, b, c) a ## _ ## b ## _ ## c
-#define CONCATU3(a, b, c) CONCATU3_INNER(a, b, c)
-
 /* Hardware description macros and data structure */
 
 /* The names in driverlib/udma.h are a bit irregular, so fix them up */
@@ -59,11 +48,8 @@
 #define ADC_SEQ_STEP            (ADC_O_SSMUX1 - ADC_O_SSMUX0)
 #define ADC_SSFIFO              (ADC_O_SSFIFO0 - ADC_O_SSMUX0)
 
-#define ADC_BASE(adc) CONCAT3(ADC, adc, _BASE)
-#define ADC_PERIPH(adc) CONCAT(SYSCTL_PERIPH_ADC, adc)
 #define ADC_SEQ_DATA_ADDR(adc, seq) \
     ((void *)(ADC_BASE(adc) + ADC_SEQ + ADC_SEQ_STEP * seq + ADC_SSFIFO))
-#define ADC_SEQ_INT(adc, seq) CONCAT4(INT_ADC, adc, SS, seq)
 #define ADC_SEQ_DMA_INT(seq) CONCAT(ADC_INT_DMA_SS, seq)
 
 /* Platform specific assumption: continuity and total num channels */
