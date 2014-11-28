@@ -27,6 +27,9 @@ struct SequenceConfig {
 
 struct AdcConfig {
     struct SequenceConfig seqs[NUM_ADCS][NUM_SEQS];
+
+    /* TODO: the timer should be per ADC,
+     * so replace seqs 2D array with ADC config obj */
     UInt32 triggerTimerBase;
     UInt32 triggerTimerHalf;
 };
