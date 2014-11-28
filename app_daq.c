@@ -58,6 +58,7 @@ static UInt8 bufTemp[NUM_BUFS_PER_SEQ][BUF_SIZE_TEMP];
 #define SAMPLES_PER_SEC 10
 
 #define TEMP_SEQUENCER 0
+#define BATT_SEQUENCER 1
 
 /* Sequencer configuration: (adc, seq) -> input samples, output buffer */
 static const struct AdcConfig adcConfig = {
@@ -73,7 +74,7 @@ static const struct AdcConfig adcConfig = {
                     },
                     { &bufTemp[0][0], BUF_SIZE_TEMP }
             },
-            [1] = {
+            [BATT_SEQUENCER] = {
                     TRUE, /* enabled */
                     0, /* priority */
                     ADC_TRIGGER_TIMER,
@@ -88,7 +89,7 @@ static const struct AdcConfig adcConfig = {
             }
         },
         {
-            [2] = {
+            [BATT_SEQUENCER] = {
                     TRUE, /* enabled */
                     0, /* priority */
                     ADC_TRIGGER_TIMER,
