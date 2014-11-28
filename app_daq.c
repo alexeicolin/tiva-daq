@@ -2,6 +2,7 @@
 #include <xdc/runtime/System.h>
 #include <xdc/runtime/Assert.h>
 #include <ti/sysbios/knl/Task.h>
+#include <ti/sysbios/knl/Clock.h>
 
 #include <xdc/cfg/global.h>
 
@@ -122,6 +123,12 @@ static Void startADCandProfileGen()
     startProfileGen();
 }
 
+static Void stopADCandProfileGen()
+{
+    TimerDisable(TIMER1_BASE, TIMER_BOTH);
+    stopProfileGen();
+}
+
 Void onDMAError(UArg arg)
 {
     UInt32 status = uDMAErrorStatusGet();
@@ -136,6 +143,15 @@ Void sampleTemp(UArg arg)
     ledOn = !ledOn;
 
     ADCProcessorTrigger(ADC0_BASE, TEMP_SEQUENCER);
+}
+
+
+Void stop(UArg arg)
+{
+    stopADCandProfileGen();
+    Clock_stop(tempClockObj);
+    Clock_stop(drainedClockObj);
+    GPIO_write(EK_TM4C123GXL_LED_BLUE, Board_LED_ON);
 }
 
 Int app(Int argc, Char* argv[])
