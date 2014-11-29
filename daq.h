@@ -36,7 +36,7 @@ struct SequenceConfig {
     Bool enabled;
     UInt8 priority;
     UInt32 trigger;
-    UInt32 samples[MAX_SAMPLES_IN_SEQ];
+    UInt32 samples[MAX_SAMPLES_IN_SEQ+1]; /* +1 for end marker */
     struct SequenceBuffer buf;
 };
 
