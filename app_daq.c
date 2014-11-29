@@ -51,33 +51,21 @@ struct ProfileInterval profiles[][MAX_PROFILE_LEN] = {
 
 /* ADC data buffers */
 
-#define BUF_SIZE_VPOS 1024
-#define BUF_SIZE_VNEG 1024
+#define BUF_SIZE_VBAT 1024
 #define BUF_SIZE_TEMP   16
 
-static UInt8 bufVpos[NUM_BUFS_PER_SEQ][BUF_SIZE_VPOS];
-static UInt8 bufVneg[NUM_BUFS_PER_SEQ][BUF_SIZE_VPOS];
+static UInt8 bufVbat[NUM_BUFS_PER_SEQ][BUF_SIZE_VBAT];
 static UInt8 bufTemp[NUM_BUFS_PER_SEQ][BUF_SIZE_TEMP];
 
 #define SAMPLES_PER_SEC 10
 
 #define TEMP_SEQUENCER 3
-#define BATT_SEQUENCER 1
+#define BATT_SEQUENCER 0
 
 /* Sequencer configuration: (adc, seq) -> input samples, output buffer */
 static const struct AdcConfig adcConfig = {
     {
         {
-            [TEMP_SEQUENCER] = {
-                    TRUE, /* enabled */
-                    1, /* priority */
-                    ADC_TRIGGER_PROCESSOR,
-                    {
-                        ADC_CTL_TS,
-                        ADC_SEQ_END
-                    },
-                    { &bufTemp[0][0], BUF_SIZE_TEMP }
-            },
             [BATT_SEQUENCER] = {
                     TRUE, /* enabled */
                     0, /* priority */
@@ -87,24 +75,25 @@ static const struct AdcConfig adcConfig = {
                         ADC_CTL_CH1,
                         ADC_CTL_CH2,
                         ADC_CTL_CH3,
+                        ADC_CTL_CH4,
+                        ADC_CTL_CH5,
+                        ADC_CTL_CH6,
+                        ADC_CTL_CH7,
                         ADC_SEQ_END
                     },
-                    { &bufVpos[0][0], BUF_SIZE_VPOS }
+                    { &bufVbat[0][0], BUF_SIZE_VBAT }
             }
         },
         {
-            [BATT_SEQUENCER] = {
+            [TEMP_SEQUENCER] = {
                     TRUE, /* enabled */
                     0, /* priority */
-                    ADC_TRIGGER_TIMER,
+                    ADC_TRIGGER_PROCESSOR,
                     {
-                        ADC_CTL_CH0,
-                        ADC_CTL_CH1,
-                        ADC_CTL_CH2,
-                        ADC_CTL_CH3,
-                        ADC_SEQ_END
+                       ADC_CTL_TS,
+                       ADC_SEQ_END
                     },
-                    { &bufVneg[0][0], BUF_SIZE_VNEG }
+                    { &bufTemp[0][0], BUF_SIZE_TEMP }
             }
         }
     },
