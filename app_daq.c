@@ -27,7 +27,8 @@
 #include "daq.h"
 
 /* Choose an event to blink the blue LED on */
-#define BLINK_LED_ON_TEMP_SAMPLE
+/* #define BLINK_LED_ON_TEMP_SAMPLE */
+#define BLINK_LED_ON_BLINKER
 
 /* Load profile config */
 
@@ -146,6 +147,15 @@ Void stop(UArg arg)
     Clock_stop(tempClockObj);
     Clock_stop(drainedClockObj);
     GPIO_write(EK_TM4C123GXL_LED_BLUE, Board_LED_ON);
+}
+
+Void blinkLed(UArg arg)
+{
+#ifdef BLINK_LED_ON_BLINKER
+    static Bool ledOn = FALSE;
+    GPIO_write(EK_TM4C123GXL_LED_BLUE, ledOn ? Board_LED_ON : Board_LED_OFF);
+    ledOn = !ledOn;
+#endif
 }
 
 Int app(Int argc, Char* argv[])
