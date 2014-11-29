@@ -30,6 +30,8 @@
 /* #define BLINK_LED_ON_TEMP_SAMPLE */
 #define BLINK_LED_ON_BLINKER
 
+static UInt32 blinkRateDivisor = 1;
+
 /* Load profile config */
 
 #define PROFILE_TICKS_PER_SEC     10
@@ -153,8 +155,13 @@ Void blinkLed(UArg arg)
 {
 #ifdef BLINK_LED_ON_BLINKER
     static Bool ledOn = FALSE;
-    GPIO_write(EK_TM4C123GXL_LED_BLUE, ledOn ? Board_LED_ON : Board_LED_OFF);
-    ledOn = !ledOn;
+    static UInt32 tick = 0;
+    if (tick % blinkRateDivisor == 0) {
+        GPIO_write(EK_TM4C123GXL_LED_BLUE,
+                   ledOn ? Board_LED_ON : Board_LED_OFF);
+        ledOn = !ledOn;
+    }
+    tick++;
 #endif
 }
 
