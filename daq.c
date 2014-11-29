@@ -260,7 +260,7 @@ static Void initAdcInputPin(UInt32 chan)
         pinMap++;
     Assert_isTrue(pinMap->port, NULL);
 
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
+    SysCtlPeripheralEnable(pinMap->port);
     GPIOPinTypeADC(pinMap->port, pinMap->pin);
 }
 
