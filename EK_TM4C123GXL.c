@@ -75,10 +75,9 @@
 
 #include "EK_TM4C123GXL.h"
 
-static tDMAControlTable EK_TM4C123GXL_DMAControlTable[32]
-    __attribute((aligned(1024)));
-static int DMA_count = -1;
+#define DMA_NEEDED (TI_DRIVERS_WIFI_INCLUDED || TI_DRIVERS_SPI_INCLUDED)
 
+#if DMA_NEEDED
 /*
  *  ======== EK_TM4C123GXL_errorDMAHwi ========
  */
@@ -110,6 +109,7 @@ Void EK_TM4C123GXL_initDMA(Void)
 	DMA_count++;
     }
 }
+#endif // DMA_NEEDED
 
 #if TI_DRIVERS_GPIO_INCLUDED
 #include <ti/drivers/GPIO.h>
