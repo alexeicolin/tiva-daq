@@ -64,9 +64,6 @@ Void gpioButton2Fxn(Void);
 
 #endif
 
-/* GPIO_Callbacks structure for GPIO interrupts */
-extern const GPIO_Callbacks EK_TM4C123GXL_gpioPortFCallbacks;
-
 /*!
  *  @def    EK_TM4C123GXL_GPIOName
  *  @brief  Enum of GPIO names on the EK_TM4C123GXL dev board

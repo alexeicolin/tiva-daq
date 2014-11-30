@@ -115,10 +115,10 @@ Void EK_TM4C123GXL_initDMA(Void)
 #include <ti/drivers/GPIO.h>
 
 /* Memory for the GPIO module to construct a Hwi */
-Hwi_Struct callbackHwi;
+static Hwi_Struct callbackHwi;
 
 /* GPIO configuration structure */
-const GPIO_HWAttrs gpioHWAttrs[EK_TM4C123GXL_GPIOCOUNT] = {
+static const GPIO_HWAttrs gpioHWAttrs[EK_TM4C123GXL_GPIOCOUNT] = {
     {GPIO_PORTF_BASE, GPIO_PIN_1, GPIO_OUTPUT}, /* EK_TM4C123GXL_LED_RED */
     {GPIO_PORTF_BASE, GPIO_PIN_2, GPIO_OUTPUT}, /* EK_TM4C123GXL_LED_BLUE */
     {GPIO_PORTF_BASE, GPIO_PIN_3, GPIO_OUTPUT}, /* EK_TM4C123GXL_LED_GREEN */
@@ -128,7 +128,7 @@ const GPIO_HWAttrs gpioHWAttrs[EK_TM4C123GXL_GPIOCOUNT] = {
 
 /* GPIO callback structure to set callbacks for GPIO interrupts */
 #ifdef BUTTON_HANDLERS_INCLUDED
-const GPIO_Callbacks EK_TM4C123GXL_gpioPortFCallbacks = {
+static const GPIO_Callbacks EK_TM4C123GXL_gpioPortFCallbacks = {
     GPIO_PORTF_BASE, INT_GPIOF, &callbackHwi,
     {
      gpioButton2Fxn,
