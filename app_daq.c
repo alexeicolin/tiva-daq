@@ -157,9 +157,9 @@ Void blinkLed(UArg arg)
     static Bool ledOn = FALSE;
     static UInt32 tick = 0;
     if (tick % blinkRateDivisor == 0) {
+        ledOn = !ledOn;
         GPIO_write(EK_TM4C123GXL_LED_BLUE,
                    ledOn ? Board_LED_ON : Board_LED_OFF);
-        ledOn = !ledOn;
     }
     tick++;
 #endif
