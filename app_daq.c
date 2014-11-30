@@ -22,15 +22,20 @@
 #include "Board.h"
 
 #include "delay.h"
-#include "debounce.h"
 #include "profile.h"
 #include "daq.h"
+
+static Bool isRunning = FALSE;
 
 /* Choose an event to blink the blue LED on */
 /* #define BLINK_LED_ON_TEMP_SAMPLE */
 #define BLINK_LED_ON_BLINKER
 
-static UInt32 blinkRateDivisor = 1;
+/* Different blink rate divisors to encode multiple states onto one LED */
+#define BLINK_RATE_STOPPED 2
+#define BLINK_RATE_RUNNING 1
+
+static UInt32 blinkRateDivisor = BLINK_RATE_STOPPED;
 
 /* Load profile config */
 
@@ -114,8 +119,8 @@ static Void initADCandProfileGenTimers()
 
 static Void startADCandProfileGen()
 {
-    TimerEnable(TIMER1_BASE, TIMER_BOTH);
     startProfileGen();
+    TimerEnable(TIMER1_BASE, TIMER_BOTH);
 }
 
 static Void stopADCandProfileGen()
@@ -143,12 +148,29 @@ Void sampleTemp(UArg arg)
 }
 
 
-Void stop(UArg arg)
+static Void start()
+{
+    startADCandProfileGen();
+    Clock_start(tempClockObj);
+    blinkRateDivisor = BLINK_RATE_RUNNING;
+    isRunning = TRUE;
+}
+
+static Void stop(UArg arg)
 {
     stopADCandProfileGen();
     Clock_stop(tempClockObj);
-    Clock_stop(drainedClockObj);
     GPIO_write(EK_TM4C123GXL_LED_BLUE, Board_LED_ON);
+    blinkRateDivisor = BLINK_RATE_STOPPED;
+    isRunning = FALSE;
+}
+
+Void startStop(UArg arg)
+{
+    if (!isRunning)
+        start();
+    else
+        stop();
 }
 
 Void blinkLed(UArg arg)
@@ -172,6 +194,6 @@ Int app(Int argc, Char* argv[])
     initProfileGen(profiles, NUM_PROFILES,
                    PROFILE_TICKS_PER_SEC, PWM_FREQ_HZ);
 
-    startADCandProfileGen();
+    Swi_post(startStopSwi);
     return 0;
 }
