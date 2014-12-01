@@ -30,23 +30,31 @@ static struct ExportBuffer *expBuffers = NULL;
 /* Buffer which is currently being transfered  */
 static struct ExportBuffer *curExpBuffer = NULL;
 
-static const UInt32 marker = 0xf00dcafe;
+static const UInt8 marker[] = { 0xf0, 0x0d, 0xca, 0xfe };
 static UInt32 bufferSeqNum = 0;
 
-static inline UInt bufWriteUInt(UInt8 *buf, UInt32 n, Int bytes)
+static inline UInt bufWriteBytes(UInt8 *buf, const UInt8 *bytes, Int numBytes)
 {
     Int i;
-    for (i = bytes - 1; i >= 0; --i) {
+    for (i = 0; i < numBytes; ++i)
+        buf[i] = bytes[i];
+    return numBytes;
+}
+
+static inline UInt bufWriteUInt(UInt8 *buf, UInt32 n, Int numBytes)
+{
+    Int i;
+    for (i = 0; i < numBytes; ++i) {
         buf[i] = n & 0xff;
         n >>= 8;
     }
-    return bytes;
+    return numBytes;
 }
 
 static Void bufWriteFixedHeader(UInt8 *buf, UInt8 idx, UInt16 size)
 {
     UInt8 *bufp = buf;
-    bufp += bufWriteUInt(bufp, marker, EXPBUF_HEADER_MARKER_SIZE);
+    bufp += bufWriteBytes(bufp, marker, EXPBUF_HEADER_MARKER_SIZE);
     bufp += bufWriteUInt(bufp, size, EXPBUF_HEADER_SIZE_SIZE);
     bufp += bufWriteUInt(bufp, idx, EXPBUF_HEADER_IDX_SIZE);
     Assert_isTrue(bufp - buf <= EXPBUF_FIXED_HEADER_SIZE, NULL);
@@ -129,7 +137,8 @@ Void processBuffers(UArg arg)
             curExpBuffer = expBuffer;
 
             /* Turn on LED to indicate start of transfer */
-            GPIO_write(EK_TM4C123GXL_LED_GREEN, Board_LED_ON);
+            if (i == 4)
+                GPIO_write(EK_TM4C123GXL_LED_GREEN, Board_LED_ON);
 
             bufWriteVarHeader(expBuffer->addr);
 
