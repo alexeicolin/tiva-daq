@@ -339,6 +339,7 @@ static Void initADCTimer(UInt32 samplesPerSec)
     TimerPrescaleSet(timerBase, timerHalf, prescaler);
     TimerLoadSet(timerBase, timerHalf, period);
     TimerControlTrigger(timerBase, timerHalf, TRUE);
+    TimerControlStall(timerBase, timerHalf, true); /* stop in debug mode */
 }
 
 static Void initADC(UInt32 samplesPerSec)
