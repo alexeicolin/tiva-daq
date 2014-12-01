@@ -156,7 +156,10 @@ def save_as_csv(fin, out_name, seqs):
                     str(header_data))
             header = Header(bytearray(header_data))
 
-            if header.buf_idx not in seqs.keys():
+            # index in header counts double-buffer, but our seq map does not
+            seq_idx = header.buf_idx / 2
+
+            if seq_idx not in seqs.keys():
                 raise ParseException("Invalid buffer index: " + \
                     str(header.buf_idx))
 
@@ -173,7 +176,7 @@ def save_as_csv(fin, out_name, seqs):
                         str(len(sample_data)) + " bytes (requested " + \
                         str(header.buf_size - header.SIZE) + ")") 
 
-            seq = seqs[header.buf_idx]
+            seq = seqs[seq_idx]
             samples = seq.parse_samples(header, sample_data)
 
             for i in range(samples.shape[0]): # sample channel sequence
