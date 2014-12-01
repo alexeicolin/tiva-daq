@@ -68,8 +68,10 @@ static UInt8 bufTemp[NUM_BUFS_PER_SEQ][BUF_SIZE_TEMP];
 
 #define SAMPLES_PER_SEC 10
 
-#define TEMP_SEQUENCER 3
+#define BATT_ADC 0
 #define BATT_SEQUENCER 0
+#define TEMP_ADC 1
+#define TEMP_SEQUENCER 3
 
 /* Sequencer configuration: (adc, seq) -> input samples, output buffer */
 static const struct AdcConfig adcConfig = {
@@ -145,7 +147,7 @@ Void sampleTemp(UArg arg)
     ledOn = !ledOn;
 #endif
 
-    ADCProcessorTrigger(ADC0_BASE, TEMP_SEQUENCER);
+    ADCProcessorTrigger(ADC_BASE(TEMP_ADC), TEMP_SEQUENCER);
 }
 
 
