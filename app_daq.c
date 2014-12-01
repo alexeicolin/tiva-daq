@@ -191,6 +191,9 @@ Void blinkLed(UArg arg)
 
 Int app(Int argc, Char* argv[])
 {
+    /* stop main timer in debug mode (periph is enabled by this time) */
+    TimerControlStall(TIMER0_BASE, TIMER_BOTH, true);
+
     initADCandProfileGenTimers();
     initDAQ(&adcConfig, SAMPLES_PER_SEC);
     initProfileGen(profiles, NUM_PROFILES,
