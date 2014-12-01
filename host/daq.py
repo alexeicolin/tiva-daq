@@ -90,7 +90,7 @@ class Header:
         buf_size = bytes_to_int(bytearray(buf_size))
         if buf_size >= self.SIZE and buf_size > self.MAX_BUF_SIZE:
             raise Exception("Invalid buffer size: " + str(buf_size) + \
-                    "(max is " + str(self.MAX_BUF_SIZE) + ")")
+                    " (max is " + str(self.MAX_BUF_SIZE) + ")")
         self.buf_size = buf_size
         pos += self.SIZE_SIZE
 
@@ -163,14 +163,14 @@ def save_as_csv(fin, out_name, seqs):
             if header.seq_num != cur_seq_num:
                 raise ParseException("Seq number mismatch: " + \
                     str(header.seq_num) + \
-                    "(expected " + str(cur_seq_num) + ")")
+                    " (expected " + str(cur_seq_num) + ")")
 
             cur_seq_num += 1
 
             sample_data = fin.read(header.buf_size - header.SIZE)
             if len(sample_data) != header.buf_size - header.SIZE:
                 raise ParseException("Failed to read sample data: got " + \
-                        str(len(sample_data)) + " bytes " + "(requested " + \
+                        str(len(sample_data)) + " bytes (requested " + \
                         str(header.buf_size - header.SIZE) + ")") 
 
             seq = seqs[header.buf_idx]
