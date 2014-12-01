@@ -3,12 +3,12 @@ import binascii
 import numpy as np
 
 def bytes_to_int(byte_array):
-    """Return integer value from big-endian byte array"""
+    """Return integer value from little-endian byte array"""
     r = 0
-    p = len(byte_array) - 1
+    p = 0
     for b in byte_array:
         r |= (b << (8*p))
-        p -= 1
+        p += 1
     return r
 
 class Channel:
