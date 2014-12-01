@@ -137,8 +137,7 @@ Void processBuffers(UArg arg)
             curExpBuffer = expBuffer;
 
             /* Turn on LED to indicate start of transfer */
-            if (i == 4)
-                GPIO_write(EK_TM4C123GXL_LED_GREEN, Board_LED_ON);
+            GPIO_write(EK_TM4C123GXL_LED_GREEN, Board_LED_ON);
 
             bufWriteVarHeader(expBuffer->addr);
 
