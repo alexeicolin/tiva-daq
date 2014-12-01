@@ -32,5 +32,6 @@ Void processBuffers(UArg arg);
 Void onExportComplete(UArg arg);
 Void exportBuffer(Int idx);
 UInt8 findExportBufferIdx(UInt8 *addr);
+Void resetBufferSequenceNum();
 
 #endif // EXPORT_H

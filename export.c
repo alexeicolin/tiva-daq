@@ -179,3 +179,8 @@ UInt8 findExportBufferIdx(UInt8 *addr)
     Assert_isTrue(expBuffers[i].addr, NULL);
     return i;
 }
+
+Void resetBufferSequenceNum()
+{
+    bufferSeqNum = 0;
+}

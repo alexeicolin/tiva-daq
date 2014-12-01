@@ -24,6 +24,7 @@
 #include "delay.h"
 #include "profile.h"
 #include "daq.h"
+#include "export.h" /* TODO: this should be hidden inside DAQ */
 
 static Bool isRunning = FALSE;
 
@@ -150,6 +151,7 @@ Void sampleTemp(UArg arg)
 
 static Void start()
 {
+    resetBufferSequenceNum(); /* TODO: this should be hidden inside DAQ */
     startADCandProfileGen();
     Clock_start(tempClockObj);
     blinkRateDivisor = BLINK_RATE_RUNNING;
