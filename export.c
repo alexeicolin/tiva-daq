@@ -179,6 +179,15 @@ Void exportBuffer(Int idx)
     Swi_post(exportBuffersSwi);
 }
 
+Void exportAllBuffers()
+{
+    UInt8 i = 0;
+    while (expBuffers[i].addr) {
+        exportBuffer(i);
+        i++;
+    }
+}
+
 UInt8 findExportBufferIdx(UInt8 *addr)
 {
     UInt8 i = 0;

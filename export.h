@@ -31,6 +31,7 @@ Void initExport(struct ExportBuffer *expBufferList);
 Void processBuffers(UArg arg);
 Void onExportComplete(UArg arg);
 Void exportBuffer(Int idx);
+Void exportAllBuffers();
 UInt8 findExportBufferIdx(UInt8 *addr);
 Void resetBufferSequenceNum();
 

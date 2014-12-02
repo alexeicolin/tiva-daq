@@ -164,6 +164,7 @@ static Void stop(UArg arg)
 {
     stopADCandProfileGen();
     Clock_stop(tempClockObj);
+    exportAllBuffers(); /* TODO: this should be hidden inside DAQ */
     GPIO_write(EK_TM4C123GXL_LED_BLUE, Board_LED_ON);
     blinkRateDivisor = BLINK_RATE_STOPPED;
     isRunning = FALSE;
