@@ -45,9 +45,10 @@ class Sequence:
 
     def parse_samples(self, header, sample_data):
         """Parses raw data buffer into a 2D numpy array (count x channels) """
-        samples = np.zeros([header.num_samples(), len(self.channels)])
+        num_sample_seqs = header.num_samples() / len(self.channels)
+        samples = np.zeros([num_sample_seqs, len(self.channels)])
         pos = 0
-        for i in range(header.num_samples()):
+        for i in range(num_sample_seqs):
             j = 0
             for j in range(len(self.channels)):
                 chan = self.channels[j]
