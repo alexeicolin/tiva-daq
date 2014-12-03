@@ -67,6 +67,7 @@ static UInt8 bufVbat[NUM_BUFS_PER_SEQ][BUF_SIZE_VBAT];
 static UInt8 bufTemp[NUM_BUFS_PER_SEQ][BUF_SIZE_TEMP];
 
 #define SAMPLES_PER_SEC 10
+#define HW_AVG_FACTOR 16
 
 #define BATT_ADC 0
 #define BATT_SEQUENCER 0
@@ -77,7 +78,7 @@ static const struct DaqConfig daqConfig = {
     {
         {
             TIMER1_BASE, TIMER_B, /* trigger timer */
-            0, /* hw averaging factor */
+            HW_AVG_FACTOR,
             {
                 [BATT_SEQUENCER] = {
                         TRUE, /* enabled */
@@ -99,7 +100,7 @@ static const struct DaqConfig daqConfig = {
             },
         {
             TIMER1_BASE, TIMER_B, /* trigger timer */
-            0, /* hw averaging factor */
+            HW_AVG_FACTOR,
             {
                 [TEMP_SEQUENCER] = {
                         TRUE, /* enabled */
