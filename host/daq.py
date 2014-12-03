@@ -77,6 +77,8 @@ class Header:
     MAX_BUF_SIZE = 1024 # constained by UDMA transfer size
     SAMPLE_SIZE = 2 # bytes
 
+    POSSIBLE_SEQ_NUMS = 2**(SEQ_SIZE * 8)
+
     def __init__(self, data):
         pos = 0
 
@@ -174,7 +176,7 @@ def save_as_csv(fin, out_name, seqs):
                     str(header.seq_num) + \
                     " (expected " + str(cur_seq_num) + ")")
 
-            cur_seq_num += 1
+            cur_seq_num = (cur_seq_num + 1) % header.POSSIBLE_SEQ_NUMS
 
             sample_data = fin.read(header.buf_size - header.SIZE)
             if len(sample_data) != header.buf_size - header.SIZE:
