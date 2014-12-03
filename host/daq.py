@@ -143,6 +143,7 @@ def save_as_csv(fin, out_name, seqs):
     signal.signal(signal.SIGINT, sigint_handler)
 
     cur_seq_num = 0
+    pos = 0
 
     try:
 
@@ -153,19 +154,23 @@ def save_as_csv(fin, out_name, seqs):
                 break
             
             if len(header_data) != Header.SIZE:
-                raise ParseException("Failed to read header:" + \
-                    str(header_data))
+                raise ParseException("Failed to read header " + \
+                    "(pos " + ("0x%x" % pos) + "):" + str(header_data))
             header = Header(bytearray(header_data))
+
+            pos += Header.SIZE
 
             # index in header counts double-buffer, but our seq map does not
             seq_idx = header.buf_idx / 2
 
             if seq_idx not in seqs.keys():
-                raise ParseException("Invalid buffer index: " + \
+                raise ParseException("Invalid buffer index " + \
+                    "(pos " + ("0x%x" % pos) + "): " + \
                     str(header.buf_idx))
 
             if header.seq_num != cur_seq_num:
-                raise ParseException("Seq number mismatch: " + \
+                raise ParseException("Seq number mismatch " + \
+                    "(pos " + ("0x%x" % pos) + "): " + \
                     str(header.seq_num) + \
                     " (expected " + str(cur_seq_num) + ")")
 
@@ -173,9 +178,11 @@ def save_as_csv(fin, out_name, seqs):
 
             sample_data = fin.read(header.buf_size - header.SIZE)
             if len(sample_data) != header.buf_size - header.SIZE:
-                raise ParseException("Failed to read sample data: got " + \
+                raise ParseException("Failed to read sample data " + \
+                        "(pos " + ("0x%x" % pos) + "): got " + \
                         str(len(sample_data)) + " bytes (requested " + \
                         str(header.buf_size - header.SIZE) + ")") 
+            pos += header.buf_size - header.SIZE
 
             seq = seqs[seq_idx]
             samples = seq.parse_samples(header, sample_data)
