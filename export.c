@@ -78,58 +78,6 @@ static inline Void bufWriteVarHeader(UInt8 *buf)
     Assert_isTrue(bufp - buf <= EXPBUF_HEADER_SIZE, NULL);
 }
 
-static Void initUART()
-{
-    SysCtlPeripheralEnable(UART_GPIO_PERIPH);
-    SysCtlPeripheralEnable(UART_PERIPH);
-    GPIOPinConfigure(UART_PIN_ASSIGN_RX);
-    GPIOPinConfigure(UART_PIN_ASSIGN_TX);
-    GPIOPinTypeUART(UART_GPIO_PORT_BASE, UART_GPIO_PINS);
-    UARTConfigSetExpClk(UART_PORT_BASE, SysCtlClockGet(), 115200,
-                        UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
-                        UART_CONFIG_PAR_NONE);
-}
-
-Void initExport(struct ExportBuffer *expBufferList)
-{
-    Int i = 0;
-    struct ExportBuffer *expBuffer = expBufferList;
-
-    expBuffers = expBufferList;
-
-    while (expBuffer->addr) {
-        Assert_isTrue(expBuffer->size <= MAX_UDMA_TRANSFER_SIZE, NULL);
-        bufWriteFixedHeader(expBuffer->addr, i++, expBuffer->size);
-        expBuffer++;
-    }
-
-    initUART();
-
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
-    IntEnable(INT_UDMAERR);
-    uDMAEnable();
-    uDMAControlBaseSet(dmaControlTable);
-
-    // Set both the TX and RX trigger thresholds to 4.  This will be used by
-    // the uDMA controller to signal when more data should be transferred.  The
-    // uDMA TX and RX channels will be configured so that it can transfer 4
-    // bytes in a burst when the UART is ready to transfer more data.
-    UARTFIFOLevelSet(UART_PORT_BASE, UART_FIFO_TX4_8, UART_FIFO_RX4_8);
-    UARTDMAEnable(UART_PORT_BASE, UART_DMA_TX);
-    IntEnable(UART_INTERRUPT);
-
-    uDMAChannelAttributeDisable(UART_UDMA_CHANNEL_TX,
-                                UDMA_ATTR_ALTSELECT |
-                                UDMA_ATTR_HIGH_PRIORITY |
-                                UDMA_ATTR_REQMASK);
-    uDMAChannelAttributeEnable(UART_UDMA_CHANNEL_TX, UDMA_ATTR_USEBURST);
-
-    uDMAChannelAttributeEnable(UART_UDMA_CHANNEL_TX, UDMA_ATTR_USEBURST);
-    uDMAChannelControlSet(UART_UDMA_CHANNEL_TX | UDMA_PRI_SELECT,
-                          UDMA_SIZE_8 | UDMA_SRC_INC_8 | UDMA_DST_INC_NONE |
-                          UDMA_ARB_4);
-}
-
 Void processBuffers(UArg arg)
 {
     Int i;
@@ -211,4 +159,56 @@ UInt8 findExportBufferIdx(UInt8 *addr)
 Void resetBufferSequenceNum()
 {
     bufferSeqNum = 0;
+}
+
+static Void initUART()
+{
+    SysCtlPeripheralEnable(UART_GPIO_PERIPH);
+    SysCtlPeripheralEnable(UART_PERIPH);
+    GPIOPinConfigure(UART_PIN_ASSIGN_RX);
+    GPIOPinConfigure(UART_PIN_ASSIGN_TX);
+    GPIOPinTypeUART(UART_GPIO_PORT_BASE, UART_GPIO_PINS);
+    UARTConfigSetExpClk(UART_PORT_BASE, SysCtlClockGet(), 115200,
+                        UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
+                        UART_CONFIG_PAR_NONE);
+}
+
+Void initExport(struct ExportBuffer *expBufferList)
+{
+    Int i = 0;
+    struct ExportBuffer *expBuffer = expBufferList;
+
+    expBuffers = expBufferList;
+
+    while (expBuffer->addr) {
+        Assert_isTrue(expBuffer->size <= MAX_UDMA_TRANSFER_SIZE, NULL);
+        bufWriteFixedHeader(expBuffer->addr, i++, expBuffer->size);
+        expBuffer++;
+    }
+
+    initUART();
+
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
+    IntEnable(INT_UDMAERR);
+    uDMAEnable();
+    uDMAControlBaseSet(dmaControlTable);
+
+    // Set both the TX and RX trigger thresholds to 4.  This will be used by
+    // the uDMA controller to signal when more data should be transferred.  The
+    // uDMA TX and RX channels will be configured so that it can transfer 4
+    // bytes in a burst when the UART is ready to transfer more data.
+    UARTFIFOLevelSet(UART_PORT_BASE, UART_FIFO_TX4_8, UART_FIFO_RX4_8);
+    UARTDMAEnable(UART_PORT_BASE, UART_DMA_TX);
+    IntEnable(UART_INTERRUPT);
+
+    uDMAChannelAttributeDisable(UART_UDMA_CHANNEL_TX,
+                                UDMA_ATTR_ALTSELECT |
+                                UDMA_ATTR_HIGH_PRIORITY |
+                                UDMA_ATTR_REQMASK);
+    uDMAChannelAttributeEnable(UART_UDMA_CHANNEL_TX, UDMA_ATTR_USEBURST);
+
+    uDMAChannelAttributeEnable(UART_UDMA_CHANNEL_TX, UDMA_ATTR_USEBURST);
+    uDMAChannelControlSet(UART_UDMA_CHANNEL_TX | UDMA_PRI_SELECT,
+                          UDMA_SIZE_8 | UDMA_SRC_INC_8 | UDMA_DST_INC_NONE |
+                          UDMA_ARB_4);
 }
