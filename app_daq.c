@@ -73,43 +73,45 @@ static UInt8 bufTemp[NUM_BUFS_PER_SEQ][BUF_SIZE_TEMP];
 #define TEMP_ADC 1
 #define TEMP_SEQUENCER 3
 
-/* Sequencer configuration: (adc, seq) -> input samples, output buffer */
-static const struct AdcConfig adcConfig = {
+static const struct DaqConfig daqConfig = {
     {
         {
-            [BATT_SEQUENCER] = {
-                    TRUE, /* enabled */
-                    0, /* priority */
-                    ADC_TRIGGER_TIMER,
-                    {
-                        ADC_CTL_CH0,
-                        ADC_CTL_CH1,
-                        ADC_CTL_CH2,
-                        ADC_CTL_CH3,
-                        ADC_CTL_CH4,
-                        ADC_CTL_CH5,
-                        ADC_CTL_CH6,
-                        ADC_CTL_CH7,
-                        ADC_SEQ_END
-                    },
-                    { &bufVbat[0][0], BUF_SIZE_VBAT }
-            }
-        },
+            TIMER1_BASE, TIMER_B, /* trigger timer */
+            {
+                [BATT_SEQUENCER] = {
+                        TRUE, /* enabled */
+                        0, /* priority */
+                        ADC_TRIGGER_TIMER,
+                        {
+                            ADC_CTL_CH0,
+                            ADC_CTL_CH1,
+                            ADC_CTL_CH2,
+                            ADC_CTL_CH3,
+                            ADC_CTL_CH4,
+                            ADC_CTL_CH5,
+                            ADC_CTL_CH6,
+                            ADC_CTL_CH7,
+                            ADC_SEQ_END
+                        },
+                        { &bufVbat[0][0], BUF_SIZE_VBAT }
+                }
+            },
         {
-            [TEMP_SEQUENCER] = {
-                    TRUE, /* enabled */
-                    0, /* priority */
-                    ADC_TRIGGER_PROCESSOR,
-                    {
-                       ADC_CTL_TS,
-                       ADC_SEQ_END
-                    },
-                    { &bufTemp[0][0], BUF_SIZE_TEMP }
+            TIMER1_BASE, TIMER_B, /* trigger timer */
+            {
+                [TEMP_SEQUENCER] = {
+                        TRUE, /* enabled */
+                        0, /* priority */
+                        ADC_TRIGGER_PROCESSOR,
+                        {
+                           ADC_CTL_TS,
+                           ADC_SEQ_END
+                        },
+                        { &bufTemp[0][0], BUF_SIZE_TEMP }
+                }
             }
         }
-    },
-
-    TIMER1_BASE, TIMER_B /* trigger timer */
+    }
 };
 
 /* TODO: split this up somehow */
@@ -198,7 +200,7 @@ Int app(Int argc, Char* argv[])
     TimerControlStall(TIMER0_BASE, TIMER_BOTH, true);
 
     initADCandProfileGenTimers();
-    initDAQ(&adcConfig, SAMPLES_PER_SEC);
+    initDAQ(&daqConfig, SAMPLES_PER_SEC);
     initProfileGen(profiles, NUM_PROFILES,
                    PROFILE_TICKS_PER_SEC, PWM_FREQ_HZ);
 

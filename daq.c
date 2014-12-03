@@ -133,7 +133,7 @@ static struct AdcPinMap adcPinMap[] = {
     { 0, NULL, 0 }
 };
 
-static const struct AdcConfig *adcConfig;
+static const struct DaqConfig *daqConfig;
 
 #if NUM_BUFS_PER_SEQ != 2
 #error Only two buffers per sequence are supported.
@@ -169,10 +169,11 @@ static inline UInt32 arbSizeFromSeqLen(UInt seqLen)
 
 static Void setupDMAADCTransfer(Int adc, Int seq, Int idx)
 {
+    const struct AdcConfig *adcConfig = &daqConfig->adcConfigs[adc];
     const struct AdcDev *adcDev = &adcDevices[adc];
     const struct AdcSeqDev *seqDev = &adcDev->seq[seq];
 
-    const struct SequenceBuffer *seqBuf = &adcConfig->seqs[adc][seq].buf;
+    const struct SequenceBuffer *seqBuf = &adcConfig->seqs[seq].buf;
     UInt8 *bufAddr = seqBuf->addr + idx * seqBuf->size;
 
     // static assert NUM_BUFS_PER_SEQ == 2
@@ -268,9 +269,10 @@ static UInt initADCSequence(Int adc, Int seq)
 {
     Int sample;
     UInt32 sampleChan;
+    const struct AdcConfig *adcConfig = &daqConfig->adcConfigs[adc];
     const struct AdcDev *adcDev = &adcDevices[adc];
     UInt32 adcBase = adcDev->baseAddr;
-    const struct SequenceConfig *seqConf = &adcConfig->seqs[adc][seq];
+    const struct SequenceConfig *seqConf = &adcConfig->seqs[seq];
 
     ADCSequenceDisable(adcBase, seq);
     ADCSequenceConfigure(adcBase, seq, seqConf->trigger, seqConf->priority);
@@ -316,8 +318,9 @@ static Void initADCDMA(Int adc, Int seq, UInt seqLen)
     uDMAChannelEnable(chanNum);
 }
 
-static Void initADCTimer(UInt32 samplesPerSec)
+static Void initADCTimer(Int adc, UInt32 samplesPerSec)
 {
+    const struct AdcConfig *adcConfig = &daqConfig->adcConfigs[adc];
     UInt32 timerBase = adcConfig->triggerTimerBase;
     UInt32 timerHalf = adcConfig->triggerTimerHalf;
 
@@ -358,15 +361,14 @@ static Void initADC(UInt32 samplesPerSec)
     for (adc = 0; adc < NUM_ADCS; ++adc) {
         SysCtlPeripheralEnable(adcDevices[adc].periph);
         for (seq = 0; seq < NUM_SEQS; ++seq) {
-            if (adcConfig->seqs[adc][seq].enabled) {
+            if (daqConfig->adcConfigs[adc].seqs[seq].enabled) {
                 initADCHwi(adc, seq);
                 seqLen = initADCSequence(adc, seq);
                 initADCDMA(adc, seq, seqLen);
             }
         }
+        initADCTimer(adc, samplesPerSec);
     }
-
-    initADCTimer(samplesPerSec);
 }
 
 static Void initExportBuffers()
@@ -377,7 +379,7 @@ static Void initExportBuffers()
 
     for (adc = 0; adc < NUM_ADCS; ++adc) {
         for (seq = 0; seq < NUM_SEQS; ++seq) {
-            seqConf = &adcConfig->seqs[adc][seq];
+            seqConf = &daqConfig->adcConfigs[adc].seqs[seq];
             if (seqConf->enabled) {
                 for (bufIdx = 0; bufIdx < NUM_BUFS_PER_SEQ; ++bufIdx) {
                     expBuf = &exportBuffers[i++];
@@ -398,7 +400,7 @@ static Void initExportBufferIdxMap()
 
     for (adc = 0; adc < NUM_ADCS; ++adc) {
         for (seq = 0; seq < NUM_SEQS; ++seq) {
-            seqConf = &adcConfig->seqs[adc][seq];
+            seqConf = &daqConfig->adcConfigs[adc].seqs[seq];
             if (seqConf->enabled) {
                 for (bufIdx = 0; bufIdx < NUM_BUFS_PER_SEQ; ++bufIdx) {
                     addr = seqConf->buf.addr + bufIdx * seqConf->buf.size;
@@ -409,9 +411,9 @@ static Void initExportBufferIdxMap()
     }
 }
 
-Void initDAQ(const struct AdcConfig *conf, UInt32 samplesPerSec)
+Void initDAQ(const struct DaqConfig *conf, UInt32 samplesPerSec)
 {
-    adcConfig = conf;
+    daqConfig = conf;
 
     /* Rely on uDMA init done as part of export module */
 
