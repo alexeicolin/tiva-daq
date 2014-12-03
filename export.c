@@ -1,5 +1,7 @@
 #include <xdc/std.h>
 #include <xdc/runtime/Assert.h>
+#include <xdc/runtime/Error.h>
+#include <ti/sysbios/hal/Hwi.h>
 #include <ti/sysbios/knl/Swi.h>
 
 #include <xdc/cfg/global.h>
@@ -113,7 +115,7 @@ Void processBuffers(UArg arg)
     }
 }
 
-Void onExportComplete(UArg arg)
+static Void onExportComplete(UArg arg)
 {
     UInt32 status;
     status = UARTIntStatus(UART_PORT_BASE, 1);
@@ -175,6 +177,19 @@ static Void initUART()
                         UART_CONFIG_PAR_NONE);
 }
 
+static Void initUARTHwi()
+{
+    Hwi_Handle hwiObj;
+    Hwi_Params params;
+    Error_Block eb;
+
+    Error_init(&eb);
+    Hwi_Params_init(&params);
+    hwiObj = Hwi_create(UART_INTERRUPT, &onExportComplete, &params, &eb);
+    Assert_isTrue(hwiObj != NULL, NULL);
+}
+
+
 Void initExport(struct ExportBuffer *expBufferList)
 {
     Int i = 0;
@@ -189,6 +204,7 @@ Void initExport(struct ExportBuffer *expBufferList)
     }
 
     initUART();
+    initUARTHwi();
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
     IntEnable(INT_UDMAERR);
