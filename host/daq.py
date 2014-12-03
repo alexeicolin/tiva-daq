@@ -84,7 +84,7 @@ class Header:
 
         marker = data[pos : pos + self.MARKER_SIZE]
         if marker != self.MARKER:
-            raise Exception("Invalid marker: " + \
+            raise ParseException("Invalid marker: " + \
                 str(binascii.hexlify(marker)) + \
                 " (expected " + str(binascii.hexlify(self.MARKER)) + ")")
         pos += self.MARKER_SIZE
@@ -92,7 +92,7 @@ class Header:
         buf_size = data[pos : pos + self.SIZE_SIZE]
         buf_size = bytes_to_int(bytearray(buf_size))
         if buf_size >= self.SIZE and buf_size > self.MAX_BUF_SIZE:
-            raise Exception("Invalid buffer size: " + str(buf_size) + \
+            raise ParseException("Invalid buffer size: " + str(buf_size) + \
                     " (max is " + str(self.MAX_BUF_SIZE) + ")")
         self.buf_size = buf_size
         pos += self.SIZE_SIZE
@@ -195,6 +195,9 @@ def save_as_csv(fin, out_name, seqs):
                     if j != samples.shape[1] - 1:
                         fout[seq].write(',')
                 fout[seq].write("\n")
+    except ParseException:
+        print "ParseException at pos ", ("0x%x" % pos)
+        raise
     finally:
         close_output_files()
 
