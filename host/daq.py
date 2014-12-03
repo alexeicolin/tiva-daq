@@ -112,7 +112,7 @@ class Header:
 class ParseException(Exception):
     pass
 
-def save_as_csv(fin, out_name, seqs):
+def save_as_csv(fin, out_name, seqs, start_seq_num=0):
     """Read data stream from fin and save it to a set of CSV files"""
 
     # Open an output file per sequence and write the column header into each
@@ -144,7 +144,7 @@ def save_as_csv(fin, out_name, seqs):
             sys.exit(0)
     signal.signal(signal.SIGINT, sigint_handler)
 
-    cur_seq_num = 0
+    cur_seq_num = start_seq_num
     pos = 0
 
     try:
