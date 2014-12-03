@@ -22,6 +22,16 @@
 #include "export.h"
 #include "dma.h"
 
+#define UART_PORT_BASE       UART0_BASE
+#define UART_INTERRUPT       INT_UART0
+#define UART_PERIPH          SYSCTL_PERIPH_UART0
+#define UART_GPIO_PERIPH     SYSCTL_PERIPH_GPIOA
+#define UART_GPIO_PINS       (GPIO_PIN_0 | GPIO_PIN_1)
+#define UART_PIN_ASSIGN_RX   GPIO_PA0_U0RX
+#define UART_PIN_ASSIGN_TX   GPIO_PA1_U0TX
+#define UART_UDMA_CHANNEL_TX UDMA_CHANNEL_UART0TX
+#define UART_UDMA_CHANNEL_RX UDMA_CHANNEL_UART0RX
+
 /* From TM4C datasheet */
 #define MAX_UDMA_TRANSFER_SIZE 1024
 
@@ -69,12 +79,12 @@ static inline Void bufWriteVarHeader(UInt8 *buf)
 
 static Void initUART()
 {
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
-    GPIOPinConfigure(GPIO_PA0_U0RX);
-    GPIOPinConfigure(GPIO_PA1_U0TX);
-    GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
-    UARTConfigSetExpClk(UART0_BASE, SysCtlClockGet(), 115200,
+    SysCtlPeripheralEnable(UART_GPIO_PERIPH);
+    SysCtlPeripheralEnable(UART_PERIPH);
+    GPIOPinConfigure(UART_PIN_ASSIGN_RX);
+    GPIOPinConfigure(UART_PIN_ASSIGN_TX);
+    GPIOPinTypeUART(GPIO_PORTA_BASE, UART_GPIO_PINS);
+    UARTConfigSetExpClk(UART_PORT_BASE, SysCtlClockGet(), 115200,
                         UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
                         UART_CONFIG_PAR_NONE);
 }
@@ -103,18 +113,18 @@ Void initExport(struct ExportBuffer *expBufferList)
     // the uDMA controller to signal when more data should be transferred.  The
     // uDMA TX and RX channels will be configured so that it can transfer 4
     // bytes in a burst when the UART is ready to transfer more data.
-    UARTFIFOLevelSet(UART0_BASE, UART_FIFO_TX4_8, UART_FIFO_RX4_8);
-    UARTDMAEnable(UART0_BASE, UART_DMA_TX);
-    IntEnable(INT_UART0);
+    UARTFIFOLevelSet(UART_PORT_BASE, UART_FIFO_TX4_8, UART_FIFO_RX4_8);
+    UARTDMAEnable(UART_PORT_BASE, UART_DMA_TX);
+    IntEnable(UART_INTERRUPT);
 
-    uDMAChannelAttributeDisable(UDMA_CHANNEL_UART0TX,
+    uDMAChannelAttributeDisable(UART_UDMA_CHANNEL_TX,
                                 UDMA_ATTR_ALTSELECT |
                                 UDMA_ATTR_HIGH_PRIORITY |
                                 UDMA_ATTR_REQMASK);
-    uDMAChannelAttributeEnable(UDMA_CHANNEL_UART0TX, UDMA_ATTR_USEBURST);
+    uDMAChannelAttributeEnable(UART_UDMA_CHANNEL_TX, UDMA_ATTR_USEBURST);
 
-    uDMAChannelAttributeEnable(UDMA_CHANNEL_UART0TX, UDMA_ATTR_USEBURST);
-    uDMAChannelControlSet(UDMA_CHANNEL_UART0TX | UDMA_PRI_SELECT,
+    uDMAChannelAttributeEnable(UART_UDMA_CHANNEL_TX, UDMA_ATTR_USEBURST);
+    uDMAChannelControlSet(UART_UDMA_CHANNEL_TX | UDMA_PRI_SELECT,
                           UDMA_SIZE_8 | UDMA_SRC_INC_8 | UDMA_DST_INC_NONE |
                           UDMA_ARB_4);
 }
@@ -141,13 +151,13 @@ Void processBuffers(UArg arg)
 
             bufWriteVarHeader(expBuffer->addr);
 
-            uDMAChannelTransferSet(UDMA_CHANNEL_UART0TX | UDMA_PRI_SELECT,
+            uDMAChannelTransferSet(UART_UDMA_CHANNEL_TX | UDMA_PRI_SELECT,
                UDMA_MODE_BASIC,
                expBuffer->addr,
-               (void *)(UART0_BASE + UART_O_DR),
+               (void *)(UART_PORT_BASE + UART_O_DR),
                expBuffer->size);
 
-            uDMAChannelEnable(UDMA_CHANNEL_UART0TX);
+            uDMAChannelEnable(UART_UDMA_CHANNEL_TX);
         }
     }
 }
@@ -155,11 +165,11 @@ Void processBuffers(UArg arg)
 Void onExportComplete(UArg arg)
 {
     UInt32 status;
-    status = UARTIntStatus(UART0_BASE, 1);
-    UARTIntClear(UART0_BASE, status);
+    status = UARTIntStatus(UART_PORT_BASE, 1);
+    UARTIntClear(UART_PORT_BASE, status);
 
     /* Disabled channel means transfer is done */
-    Assert_isTrue(!uDMAChannelIsEnabled(UDMA_CHANNEL_UART0TX), NULL);
+    Assert_isTrue(!uDMAChannelIsEnabled(UART_UDMA_CHANNEL_TX), NULL);
 
     Assert_isTrue(curExpBuffer != NULL, NULL);
 
