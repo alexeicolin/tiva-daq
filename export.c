@@ -22,6 +22,8 @@
 #include "export.h"
 #include "dma.h"
 
+#define UART_BAUD 115200
+
 #define UART_PORT_BASE       UART0_BASE
 #define UART_INTERRUPT       INT_UART0
 #define UART_PERIPH          SYSCTL_PERIPH_UART0
@@ -168,7 +170,7 @@ static Void initUART()
     GPIOPinConfigure(UART_PIN_ASSIGN_RX);
     GPIOPinConfigure(UART_PIN_ASSIGN_TX);
     GPIOPinTypeUART(UART_GPIO_PORT_BASE, UART_GPIO_PINS);
-    UARTConfigSetExpClk(UART_PORT_BASE, SysCtlClockGet(), 115200,
+    UARTConfigSetExpClk(UART_PORT_BASE, SysCtlClockGet(), UART_BAUD,
                         UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
                         UART_CONFIG_PAR_NONE);
 }
