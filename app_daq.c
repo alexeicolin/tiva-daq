@@ -77,6 +77,7 @@ static const struct DaqConfig daqConfig = {
     {
         {
             TIMER1_BASE, TIMER_B, /* trigger timer */
+            0, /* hw averaging factor */
             {
                 [BATT_SEQUENCER] = {
                         TRUE, /* enabled */
@@ -98,6 +99,7 @@ static const struct DaqConfig daqConfig = {
             },
         {
             TIMER1_BASE, TIMER_B, /* trigger timer */
+            0, /* hw averaging factor */
             {
                 [TEMP_SEQUENCER] = {
                         TRUE, /* enabled */

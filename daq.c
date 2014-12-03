@@ -345,6 +345,13 @@ static Void initADCTimer(Int adc, UInt32 samplesPerSec)
     TimerControlStall(timerBase, timerHalf, true); /* stop in debug mode */
 }
 
+static Void initADCHwAvg(Int adc)
+{
+    const struct AdcConfig *adcConfig = &daqConfig->adcConfigs[adc];
+    ADCHardwareOversampleConfigure(adcDevices[adc].baseAddr,
+                                   adcConfig->hwAvgFactor);
+}
+
 static Void initADC(UInt32 samplesPerSec)
 {
     Int adc, seq;
@@ -368,6 +375,7 @@ static Void initADC(UInt32 samplesPerSec)
             }
         }
         initADCTimer(adc, samplesPerSec);
+        initADCHwAvg(adc);
     }
 }
 

@@ -44,6 +44,8 @@ struct AdcConfig {
     UInt32 triggerTimerBase;
     UInt32 triggerTimerHalf;
 
+    UInt8 hwAvgFactor;
+
     struct SequenceConfig seqs[NUM_SEQS];
 };
 
