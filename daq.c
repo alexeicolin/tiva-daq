@@ -106,15 +106,17 @@ static struct AdcDev adcDevices[] = {
 
 struct AdcPinMap {
     UInt32 ch;
-    UInt32 port;
+    UInt32 portPeriph;
+    UInt32 portBase;
     UInt8  pin;
 };
 
-#define ADC_PIN_MAP_ENTRY(ch, port, pin) \
-    {                                    \
-        CONCAT(ADC_CTL_CH, ch),          \
-        CONCAT3(GPIO_PORT, port, _BASE), \
-        CONCAT(GPIO_PIN_, pin)           \
+#define ADC_PIN_MAP_ENTRY(ch, port, pin)  \
+    {                                     \
+        CONCAT(ADC_CTL_CH, ch),           \
+        CONCAT(SYSCTL_PERIPH_GPIO, port), \
+        CONCAT3(GPIO_PORT, port, _BASE),  \
+        CONCAT(GPIO_PIN_, pin)            \
     }
 
 static struct AdcPinMap adcPinMap[] = {
@@ -257,12 +259,12 @@ static Void initADCHwi(Int adc, Int seq)
 static Void initAdcInputPin(UInt32 chan)
 {
     const struct AdcPinMap *pinMap = &adcPinMap[0];
-    while (pinMap->port && pinMap->ch != chan)
+    while (pinMap->portBase && pinMap->ch != chan)
         pinMap++;
-    Assert_isTrue(pinMap->port, NULL);
+    Assert_isTrue(pinMap->portBase, NULL);
 
-    SysCtlPeripheralEnable(pinMap->port);
-    GPIOPinTypeADC(pinMap->port, pinMap->pin);
+    SysCtlPeripheralEnable(pinMap->portPeriph);
+    GPIOPinTypeADC(pinMap->portBase, pinMap->pin);
 }
 
 static UInt initADCSequence(Int adc, Int seq)
