@@ -359,14 +359,6 @@ static Void initADC(UInt32 samplesPerSec)
     Int adc, seq;
     UInt seqLen;
 
-    /* TODO: Specify ports+pin in sequence config */
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
-    GPIOPinTypeADC(GPIO_PORTE_BASE,
-                   GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_5);
-    GPIOPinTypeADC(GPIO_PORTD_BASE,
-                   GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3);
-
     for (adc = 0; adc < NUM_ADCS; ++adc) {
         SysCtlPeripheralEnable(adcDevices[adc].periph);
         for (seq = 0; seq < NUM_SEQS; ++seq) {
