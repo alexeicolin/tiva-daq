@@ -114,8 +114,10 @@ Void EK_TM4C123GXL_initDMA(Void)
 #if TI_DRIVERS_GPIO_INCLUDED
 #include <ti/drivers/GPIO.h>
 
+#if (BUTTON_HANDLER_MASK != 0x0)
 /* Memory for the GPIO module to construct a Hwi */
 static Hwi_Struct callbackHwi;
+#endif
 
 /* GPIO configuration structure */
 static const GPIO_HWAttrs gpioHWAttrs[EK_TM4C123GXL_GPIOCOUNT] = {
