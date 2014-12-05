@@ -24,6 +24,8 @@
 #include "export.h"
 #include "dma.h"
 
+/* #define LED_ON_DURING_TRANSFER */
+
 #define UART_PORT 1
 #define UART_BAUD 2000000
 
@@ -115,8 +117,10 @@ Void processBuffers(UArg arg)
         if (expBuffer->addr) {
             curExpBuffer = expBuffer;
 
+#if LED_ON_DURING_TRANSFER
             /* Turn on LED to indicate start of transfer */
             GPIO_write(EK_TM4C123GXL_LED_GREEN, Board_LED_ON);
+#endif
 
             bufWriteVarHeader(expBuffer->addr);
 
@@ -147,8 +151,10 @@ static Void onExportComplete(UArg arg)
 
     Swi_post(exportBuffersSwi);
 
+#if LED_ON_DURING_TRANSFER
     /* Turn off LED to indicate transfer is done */
     GPIO_write(EK_TM4C123GXL_LED_GREEN, Board_LED_OFF);
+#endif
 }
 
 Void exportBuffer(Int idx)
