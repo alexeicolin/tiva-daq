@@ -136,10 +136,10 @@ def save_as_csv(fin, out_name, seqs, start_seq_num=0):
     # Handle SIGINT to make all parsed content before Ctrl-C end up in the
     # file. Respect the caller's handler by fwding to it and restoring it.
     prev_sigint_handler = signal.signal(signal.SIGINT, signal.SIG_DFL)
-    def sigint_handler(signal, frame):
+    def sigint_handler(sig, frame):
         close_output_files()
         if prev_sigint_handler == signal.SIG_DFL:
-            prev_sigint_handler(signal, frame)
+            prev_sigint_handler(sig, frame)
         else:
             sys.exit(0)
     signal.signal(signal.SIGINT, sigint_handler)
