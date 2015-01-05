@@ -324,6 +324,7 @@ Void EK_TM4C123GXL_initUART()
 }
 #endif /* TI_DRIVERS_UART_INCLUDED */
 
+#if TI_DRIVERS_USB_INCLUDED
 /*
  *  ======== EK_TM4C123GXL_initUSB ========
  *  This function just turns on the USB
@@ -341,6 +342,7 @@ Void EK_TM4C123GXL_initUSB(EK_TM4C123GXL_USBMode usbMode)
         System_abort("USB host not supported\n");
     }
 }
+#endif // TI_DRIVERS_USB_INCLUDED
 
 #if TI_DRIVERS_WATCHDOG_INCLUDED
 #include <ti/drivers/Watchdog.h>
