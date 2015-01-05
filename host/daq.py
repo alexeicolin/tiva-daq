@@ -151,16 +151,26 @@ def save_as_csv(fin, out_name, seqs, start_seq_num=0):
 
         while True:
 
-            header_data = fin.read(Header.SIZE)
-            if header_data is None or len(header_data) == 0: # EOF
-                break
-            
-            if len(header_data) != Header.SIZE:
-                raise ParseException("Failed to read header " + \
-                    "(pos " + ("0x%x" % pos) + "):" + str(header_data))
-            header = Header(bytearray(header_data))
+            skipped = False
+            while True: # keep searching for header in case corruption occurred
+                header_data = fin.read(Header.SIZE)
+                if header_data is None or len(header_data) == 0: # EOF
+                    break
 
-            pos += Header.SIZE
+                if len(header_data) != Header.SIZE:
+                    raise ParseException("Failed to read header " + \
+                        "(pos " + ("0x%x" % pos) + "):" + str(header_data))
+
+                try:
+                    header = Header(bytearray(header_data))
+                    break
+                except ParseException as e:
+                    print e
+                    skipped = True
+                    continue
+                finally:
+                    pos += Header.SIZE
+
 
             # index in header counts double-buffer, but our seq map does not
             seq_idx = header.buf_idx / 2
@@ -170,11 +180,17 @@ def save_as_csv(fin, out_name, seqs, start_seq_num=0):
                     "(pos " + ("0x%x" % pos) + "): " + \
                     str(header.buf_idx))
 
-            if header.seq_num != cur_seq_num:
-                raise ParseException("Seq number mismatch " + \
-                    "(pos " + ("0x%x" % pos) + "): " + \
-                    str(header.seq_num) + \
-                    " (expected " + str(cur_seq_num) + ")")
+            try:
+                if header.seq_num != cur_seq_num:
+                    raise ParseException("Seq number mismatch " + \
+                        "(pos " + ("0x%x" % pos) + "): " + \
+                        str(header.seq_num) + \
+                        " (expected " + str(cur_seq_num) + ")")
+            except ParseException as e:
+                print e
+
+                # Part of rudimentary corruption tolerance
+                cur_seq_num = header.seq_num
 
             cur_seq_num = (cur_seq_num + 1) % header.POSSIBLE_SEQ_NUMS
 
