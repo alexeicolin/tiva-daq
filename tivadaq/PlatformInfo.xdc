@@ -50,6 +50,8 @@ metaonly module PlatformInfo {
     readonly config UInt32 INT_ADC1SS2          = 66;
     readonly config UInt32 INT_ADC1SS3          = 67;
 
+    readonly config UInt32 INT_UDMAERR          = 63;
+
     readonly config UInt32 SYSCTL_PERIPH_UART0  = 0xf0001800;
     readonly config UInt32 SYSCTL_PERIPH_UART1  = 0xf0001801;
     readonly config UInt32 SYSCTL_PERIPH_UART2  = 0xf0001802;
