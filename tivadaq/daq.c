@@ -19,6 +19,11 @@
 static Bool isRunning = FALSE;
 static UInt32 blinkRateDivisor = BLINK_RATE_STOPPED;
 
+Void onException(Void *excp)
+{
+    setLed(LED_RED, TRUE);
+}
+
 Void onDMAError(UArg arg)
 {
     UInt32 status = uDMAErrorStatusGet();
