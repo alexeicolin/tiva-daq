@@ -1,0 +1,13 @@
+*.xm4fg
+package/
+lib/
+*.mak
+
+.dlls
+.interfaces
+.executables
+.libraries
+.libraries,m4fg
+
+Daq.h
+Export.h

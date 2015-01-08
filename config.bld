@@ -1,0 +1,14 @@
+var Build = xdc.useModule('xdc.bld.BuildEnvironment');
+var Pkg = xdc.useModule('xdc.bld.PackageContents');
+
+var GCCARM = xdc.useModule('gnu.targets.arm.M4F');
+GCCARM.platform = 'ti.platforms.tiva:TM4C123GH6PM:1';
+GCCARM.rootDir ='/usr';
+GCCARM.ccOpts.prefix = " -O0 -ggdb ";
+
+// This is a workaround: app package cfg adds the same library via Executable
+// Attrs.lopts but it gets appended before the object files, but for linker to
+// search the library it must appear after the object files that need it.
+GCCARM.lnkOpts.suffix += " -ldriver ";
+
+Build.targets = [GCCARM];

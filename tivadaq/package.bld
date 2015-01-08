@@ -1,0 +1,28 @@
+var Build = xdc.useModule('xdc.bld.BuildEnvironment');
+var Pkg = xdc.useModule('xdc.bld.PackageContents');
+
+var PROFILE = "debug";
+
+// Since TivaWare is not an RTSC component, we need to add it manually
+var INCS = {"M4F": "-I$(TIVAWARE_INSTALLATION_DIR)"};
+var DEFS = {"M4F": "-DTIVAWARE -D PART_TM4C123GH6PM"};
+var LOPTS = {"M4F": "-L$(TIVAWARE_INSTALLATION_DIR)/driverlib/gcc -ldriver"};
+
+for each (var targ in Build.targets) {
+    var libAttrs = {
+        profile: PROFILE,
+        incs: INCS[targ.name],
+        defs: DEFS[targ.name],
+    };
+    var lib = Pkg.addLibrary("lib/" + Pkg.name, targ)
+    lib.addObjects(["Export.c", "Daq.c"], libAttrs);
+
+    var execAttrs = {
+        profile: PROFILE,
+        incs: INCS[targ.name],
+        defs: DEFS[targ.name],
+        lopts: LOPTS[targ.name],
+    };
+    var exec = Pkg.addExecutable("daq", targ, targ.platform, execAttrs);
+    exec.addObjects(["daq.c", "leds.c"]);
+}
