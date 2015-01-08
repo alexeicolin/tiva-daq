@@ -47,7 +47,7 @@ Void Export_processBuffers(UArg arg1, UArg arg2)
 {
     Int i;
     Export_ExportBuffer *expBuffer;
-    const UartPort_PortInfo *uartPort = UartPort_getInfo(module->uartPort);
+    const UartPort_Info *uartPort = UartPort_getInfo(module->uartPort);
 
     /* If not currently transfering, look for a full buffer to transfer */
     if (!module->curExpBuffer) {
@@ -81,7 +81,7 @@ Void Export_processBuffers(UArg arg1, UArg arg2)
 
 Void Export_onExportComplete(UArg arg)
 {
-    const UartPort_PortInfo *uartPort = UartPort_getInfo(module->uartPort);
+    const UartPort_Info *uartPort = UartPort_getInfo(module->uartPort);
     UInt32 status;
 
     status = UARTIntStatus(uartPort->base, 1);
@@ -123,7 +123,7 @@ Void Export_resetBufferSequenceNum()
 
 static Void initUART()
 {
-    const UartPort_PortInfo *uartPort = UartPort_getInfo(module->uartPort);
+    const UartPort_Info *uartPort = UartPort_getInfo(module->uartPort);
 
     SysCtlPeripheralEnable(uartPort->gpioPeriph);
     SysCtlPeripheralEnable(uartPort->periph);
@@ -137,7 +137,7 @@ static Void initUART()
 
 static Void initUDMA()
 {
-    const UartPort_PortInfo *uartPort = UartPort_getInfo(module->uartPort);
+    const UartPort_Info *uartPort = UartPort_getInfo(module->uartPort);
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
     IntEnable(INT_UDMAERR);
