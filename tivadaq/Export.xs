@@ -6,7 +6,7 @@ function module$meta$init()
 {
     Hwi = xdc.useModule('ti.sysbios.hal.Hwi');
     Swi = xdc.useModule('ti.sysbios.knl.Swi');
-    PlatformInfo = xdc.useModule('tivadaq.PlatformInfo');
+    PlatformInfo = xdc.useModule('platforms.tiva.PlatformInfo');
 
     // Header size
     this.headerSize = 0;

@@ -7,7 +7,7 @@ function module$meta$init()
 {
     BIOS = xdc.useModule('ti.sysbios.BIOS');
     Hwi = xdc.useModule('ti.sysbios.hal.Hwi');
-    PlatformInfo = xdc.useModule('tivadaq.PlatformInfo');
+    PlatformInfo = xdc.useModule('platforms.tiva.PlatformInfo');
     Export = xdc.useModule('tivadaq.Export');
 
     populateHardwareInfo(this);

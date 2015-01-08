@@ -21,6 +21,8 @@ XDCPATH="$XDCPATH;/opt/ti/tirtos/tirtos_tivac_2_00_01_23/products/bios_6_40_01_1
 # ti.drivers.{gpio,uart}
 XDCPATH="$XDCPATH;/opt/ti/tirtos/tirtos_tivac_2_00_01_23/packages"
 
+XDCPATH="$XDCPATH;$HOME/rtml/src/ti/xdc-platforms"
+
 export XDCPATH
 
 # TivaWare for building eventgenapp for Tiva C  (M4F)
