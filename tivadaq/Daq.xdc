@@ -1,5 +1,7 @@
 package tivadaq;
 
+import platforms.tiva.GpioPort;
+
 @ModuleStartup
 module Daq {
 
@@ -150,22 +152,17 @@ module Daq {
     // Hardware info that is needed at runtime
 
     struct AdcInChan {
-        UInt8 portIdx; // index into gpioPorts array
-        UInt8 pin; // a GPIO_PIN_* macro value
+        GpioPort.Handle gpioPort;
     };
 
-    struct GpioPort {
-        UInt32 periph;
-        UInt32 base;
+    metaonly struct GpioPortEntry {
+        String port;
+        UInt8 pin;
     };
-
-    // Initialized in code to reduce boiler-plate.
-    //config GpioPort gpioPorts[] = [{},{},{},{},{},{}];
-    config GpioPort gpioPorts[length];// = {length: 6, elem: [{},{},{},{},{},{}]};
 
     // Map: ADC channel -> GPIO port, pin
     // A human-readable metaonly map, from which a target-visible map is built
-    metaonly readonly config Any adcInChanDescs[] = [
+    metaonly readonly config GpioPortEntry adcInChanDescs[] = [
          {port: 'E', pin: 3}, // CH 0
          {port: 'E', pin: 2}, // CH 1
          {port: 'E', pin: 1}, // CH 2

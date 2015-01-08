@@ -3,6 +3,9 @@
 #include <xdc/runtime/Error.h>
 #include <xdc/runtime/Startup.h>
 
+#include <platforms/tiva/GpioPeriph.h>
+#include <platforms/tiva/GpioPort.h>
+
 #include <Export.h>
 
 #include <stdbool.h>
@@ -104,16 +107,17 @@ Void onSampleTransferComplete(UArg arg)
 static Void initAdcInputPin(UInt32 chanNum)
 {
     const Daq_AdcInChan *adcInChan;
-    const Daq_GpioPort *gpioPort;
+    const GpioPort_Info *gpioPort;
+    const GpioPeriph_Info *gpioPeriph;
 
     Assert_isTrue(chanNum < Daq_adcInChans.length, NULL);
     adcInChan = &Daq_adcInChans.elem[chanNum];
    
-    Assert_isTrue(adcInChan->portIdx < Daq_gpioPorts.length, NULL);
-    gpioPort = &Daq_gpioPorts.elem[adcInChan->portIdx];
+    gpioPort = GpioPort_getInfo(adcInChan->gpioPort);
+    gpioPeriph = GpioPeriph_getInfo(gpioPort->periph);
 
-    SysCtlPeripheralEnable(gpioPort->periph);
-    GPIOPinTypeADC(gpioPort->base, adcInChan->pin);
+    SysCtlPeripheralEnable(gpioPeriph->periph);
+    GPIOPinTypeADC(gpioPeriph->base, gpioPort->pin);
 }
 
 static UInt initADCSequence(Int adc, Int seq)

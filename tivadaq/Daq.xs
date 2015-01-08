@@ -2,12 +2,14 @@ var Export;
 var Hwi;
 var BIOS;
 var PlatformInfo;
+var GpioPort;
 
 function module$meta$init()
 {
     BIOS = xdc.useModule('ti.sysbios.BIOS');
     Hwi = xdc.useModule('ti.sysbios.hal.Hwi');
     PlatformInfo = xdc.useModule('platforms.tiva.PlatformInfo');
+    GpioPort = xdc.useModule('platforms.tiva.GpioPort');
     Export = xdc.useModule('tivadaq.Export');
 
     populateHardwareInfo(this);
@@ -217,22 +219,10 @@ function populateHardwareInfo(mod)
     // Build ADC channel map
     // TODO: could optimize mod to include only ports that are actually used
 
-    var gpioPortIdxes = {}; // Map: letter -> index in gpioPorts array
     for (var i = 0; i < mod.adcInChanDescs.length; ++i) {
-        var portId = mod.adcInChanDescs[i].port; // port letter
-        if (!(portId in gpioPortIdxes)) {
-            var port = {
-                base: PlatformInfo['GPIO_PORT' + portId + '_BASE'],
-                periph: PlatformInfo['SYSCTL_PERIPH_GPIO' + portId],
-            };
-            var idx = mod.gpioPorts.length;
-            mod.gpioPorts.length += 1;
-            mod.gpioPorts[idx] = port;
-            gpioPortIdxes[portId] = idx;
-        }
+        var chanDesc = mod.adcInChanDescs[i];
         var adcInChan = {
-            portIdx: gpioPortIdxes[portId],
-            pin: PlatformInfo['GPIO_PIN_' + mod.adcInChanDescs[i].pin],
+            gpioPort: GpioPort.create(chanDesc.port, chanDesc.pin),
         };
         mod.adcInChans.length += 1;
         mod.adcInChans[mod.adcInChans.length -1] = adcInChan;
