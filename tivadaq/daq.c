@@ -4,31 +4,23 @@
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Clock.h>
 
-#include <xdc/cfg/global.h>
+#include <xdc/cfg/global.h> // globals defined in .cfg file, prefixed with 'g_' 
 
 #include <Leds.h>
 #include <Daq.h>
 
 #include "console.h"
 
-#define STATUS_LED Leds_Led_BLUE // blink rate shows DAQ is acquiring or idle
-#define FAULT_LED  Leds_Led_RED
-#define TX_LED     Leds_Led_GREEN // data buffer being transmitted via UART
-
-/* Different blink rate divisors to encode multiple states onto one LED */
-#define BLINK_RATE_STOPPED 2
-#define BLINK_RATE_RUNNING 1
-
 static Bool isRunning = FALSE;
 
 Void onException(Void *excp)
 {
-    Leds_setLed(FAULT_LED, TRUE);
+    Leds_setLed(g_faultLed, TRUE);
 }
 
 Void onAbort()
 {
-    Leds_setLed(FAULT_LED, TRUE);
+    Leds_setLed(g_faultLed, TRUE);
     System_abortStd();
 }
 
@@ -54,7 +46,7 @@ static Void start()
 {
     Daq_start();
     Clock_start(tempClockObj);
-    Leds_blinkLed(STATUS_LED, BLINK_RATE_RUNNING);
+    Leds_blinkLed(g_statusLed, g_blinkRateRunning);
     isRunning = TRUE;
 }
 
@@ -62,7 +54,7 @@ static Void stop()
 {
     Clock_stop(tempClockObj);
     Daq_stop();
-    Leds_blinkLed(STATUS_LED, BLINK_RATE_STOPPED);
+    Leds_blinkLed(g_statusLed, g_blinkRateStopped);
     isRunning = FALSE;
 }
 
@@ -76,18 +68,18 @@ Void startStop(UArg arg)
 
 Void onExportTxQueued()
 {
-    Leds_setLed(TX_LED, TRUE);
+    Leds_setLed(g_txLed, TRUE);
 }
 
 Void onExportTxCompleted()
 {
-    Leds_setLed(TX_LED, FALSE);
+    Leds_setLed(g_txLed, FALSE);
 }
 
 Int main(Int argc, Char* argv[])
 {
     openConsole();
-    Leds_pulseLed(STATUS_LED);
+    Leds_pulseLed(g_statusLed);
     Swi_post(startStopSwi);
     BIOS_start();
     return 0;
