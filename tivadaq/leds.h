@@ -8,3 +8,5 @@ typedef enum {
 
 Void initLeds(Void);
 Void setLed(Led led, Bool on);
+Void pulseLed(Led led);
+Void blinkLed(Led led, UInt32 rate);

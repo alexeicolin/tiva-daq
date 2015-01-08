@@ -9,6 +9,8 @@
 
 #include "leds.h"
 
+#define PULSE_DELAY_ITERS 100000
+
 #define LED_OFF (0)
 #define LED_ON  (~0)
 
@@ -26,9 +28,44 @@ const GPIO_Config GPIO_config[] = {
     {NULL},
 };
 
+struct LedState {
+    Bool on;
+    UInt32 blinkRate;
+};
+
+static struct LedState ledState[LED_COUNT];
+static UInt32 blinkTicks = 0;
+
 Void setLed(Led led, Bool on)
 {
     GPIO_write(led, on ? LED_ON : LED_OFF);
+}
+
+Void pulseLed(Led led)
+{
+    Int i = PULSE_DELAY_ITERS;
+    setLed(led, TRUE);
+    while (i--);
+    setLed(led, FALSE);
+}
+
+Void blinkLed(Led led, UInt32 rate)
+{
+    ledState[led].on = FALSE;
+    ledState[led].blinkRate = rate;
+}
+
+Void blinkTick(UArg arg)
+{
+    Int led;
+    for (led = 0; led < LED_COUNT; ++led) {
+        if (ledState[led].blinkRate &&
+            blinkTicks % ledState[led].blinkRate == 0) {
+            ledState[led].on = !ledState[led].on;
+            setLed(led, ledState[led].on);
+        }
+    }
+    blinkTicks++;
 }
 
 Void initLeds(Void)
