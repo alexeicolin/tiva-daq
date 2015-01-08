@@ -4,6 +4,8 @@
 #include <xdc/runtime/Startup.h>
 #include <ti/sysbios/knl/Swi.h>
 
+#include <platforms/tiva/UartPort.h>
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -45,6 +47,7 @@ Void Export_processBuffers(UArg arg1, UArg arg2)
 {
     Int i;
     Export_ExportBuffer *expBuffer;
+    const UartPort_PortInfo *uartPort = UartPort_getInfo(module->uartPort);
 
     /* If not currently transfering, look for a full buffer to transfer */
     if (!module->curExpBuffer) {
@@ -65,25 +68,27 @@ Void Export_processBuffers(UArg arg1, UArg arg2)
             bufWriteVarHeader(expBuffer->addr);
 
             uDMAChannelTransferSet(
-               module->uartPort.udmaChanTx | UDMA_PRI_SELECT,
+               uartPort->udmaChanTx | UDMA_PRI_SELECT,
                UDMA_MODE_BASIC,
                expBuffer->addr,
-               (void *)(module->uartPort.base + UART_O_DR),
+               (void *)(uartPort->base + UART_O_DR),
                expBuffer->size);
 
-            uDMAChannelEnable(module->uartPort.udmaChanTx);
+            uDMAChannelEnable(uartPort->udmaChanTx);
         }
     }
 }
 
 Void Export_onExportComplete(UArg arg)
 {
+    const UartPort_PortInfo *uartPort = UartPort_getInfo(module->uartPort);
     UInt32 status;
-    status = UARTIntStatus(module->uartPort.base, 1);
-    UARTIntClear(module->uartPort.base, status);
+
+    status = UARTIntStatus(uartPort->base, 1);
+    UARTIntClear(uartPort->base, status);
 
     /* Disabled channel means transfer is done */
-    Assert_isTrue(!uDMAChannelIsEnabled(module->uartPort.udmaChanTx), NULL);
+    Assert_isTrue(!uDMAChannelIsEnabled(uartPort->udmaChanTx), NULL);
 
     Assert_isTrue(module->curExpBuffer != NULL, NULL);
 
@@ -118,7 +123,7 @@ Void Export_resetBufferSequenceNum()
 
 static Void initUART()
 {
-    const Export_UartPort *uartPort = &module->uartPort;
+    const UartPort_PortInfo *uartPort = UartPort_getInfo(module->uartPort);
 
     SysCtlPeripheralEnable(uartPort->gpioPeriph);
     SysCtlPeripheralEnable(uartPort->periph);
@@ -132,6 +137,8 @@ static Void initUART()
 
 static Void initUDMA()
 {
+    const UartPort_PortInfo *uartPort = UartPort_getInfo(module->uartPort);
+
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
     IntEnable(INT_UDMAERR);
     uDMAEnable();
@@ -141,18 +148,18 @@ static Void initUDMA()
     // the uDMA controller to signal when more data should be transferred.  The
     // uDMA TX and RX channels will be configured so that it can transfer 4
     // bytes in a burst when the UART is ready to transfer more data.
-    UARTFIFOLevelSet(module->uartPort.base, UART_FIFO_TX4_8, UART_FIFO_RX4_8);
-    UARTDMAEnable(module->uartPort.base, UART_DMA_TX);
-    // IntEnable(module->uartPort.interrupt); // TODO: should not be needed
+    UARTFIFOLevelSet(uartPort->base, UART_FIFO_TX4_8, UART_FIFO_RX4_8);
+    UARTDMAEnable(uartPort->base, UART_DMA_TX);
+    // IntEnable(uartPort->interrupt); // TODO: should not be needed
 
-    uDMAChannelAttributeDisable(module->uartPort.udmaChanTx,
+    uDMAChannelAttributeDisable(uartPort->udmaChanTx,
                                 UDMA_ATTR_ALTSELECT |
                                 UDMA_ATTR_HIGH_PRIORITY |
                                 UDMA_ATTR_REQMASK);
-    uDMAChannelAttributeEnable(module->uartPort.udmaChanTx, UDMA_ATTR_USEBURST);
+    uDMAChannelAttributeEnable(uartPort->udmaChanTx, UDMA_ATTR_USEBURST);
 
-    uDMAChannelAttributeEnable(module->uartPort.udmaChanTx, UDMA_ATTR_USEBURST);
-    uDMAChannelControlSet(module->uartPort.udmaChanTx | UDMA_PRI_SELECT,
+    uDMAChannelAttributeEnable(uartPort->udmaChanTx, UDMA_ATTR_USEBURST);
+    uDMAChannelControlSet(uartPort->udmaChanTx | UDMA_PRI_SELECT,
                           UDMA_SIZE_8 | UDMA_SRC_INC_8 | UDMA_DST_INC_NONE |
                           UDMA_ARB_4);
 }

@@ -1,12 +1,14 @@
 var Hwi;
 var Swi;
 var PlatformInfo;
+var UartPort;
 
 function module$meta$init()
 {
     Hwi = xdc.useModule('ti.sysbios.hal.Hwi');
     Swi = xdc.useModule('ti.sysbios.knl.Swi');
     PlatformInfo = xdc.useModule('platforms.tiva.PlatformInfo');
+    UartPort = xdc.useModule('platforms.tiva.UartPort');
 
     // Header size
     this.headerSize = 0;
@@ -46,7 +48,7 @@ function module$validate()
 
 function module$static$init(state, mod)
 {
-    populateUartPortInfo(state, mod);
+    state.uartPort = UartPort.create(mod.uartPortIdx);
 
     for (var i = 0; i < mod.exportBuffers.length; ++i)
         state.exportBuffers.push(mod.exportBuffers[i]);
@@ -97,24 +99,4 @@ function bufWriteUInt(buf, offset, n, numBytes)
         n >>= 8;
     }
     return numBytes;
-}
-
-function populateUartPortInfo(state, mod)
-{
-    var portIdx = mod.uartPortIdx;
-    var gpioPort = mod.uartGpioPorts[portIdx];
-    state.uartPort = {
-        base:        PlatformInfo['UART' + portIdx + '_BASE'],
-        periph:      PlatformInfo['SYSCTL_PERIPH_UART' + portIdx],
-        udmaChanTx:  PlatformInfo['UDMA_CHANNEL_UART' + portIdx + 'TX'],
-        udmaChanRx:  PlatformInfo['UDMA_CHANNEL_UART' + portIdx + 'RX'],
-        gpioPeriph:  PlatformInfo['SYSCTL_PERIPH_GPIO' + gpioPort.letter],
-        gpioBase:    PlatformInfo['GPIO_PORT' + gpioPort.letter + '_BASE'],
-        gpioPins:    (PlatformInfo['GPIO_PIN_' + gpioPort.txPin] |
-                      PlatformInfo['GPIO_PIN_' + gpioPort.rxPin]),
-        pinAssignRx: PlatformInfo['GPIO_P' + gpioPort.letter + gpioPort.rxPin +
-                                  '_U' + portIdx + 'RX'],
-        pinAssignTx: PlatformInfo['GPIO_P' + gpioPort.letter + gpioPort.txPin +
-                                  '_U' + portIdx + 'TX'],
-    };
 }

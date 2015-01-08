@@ -1,6 +1,7 @@
 package tivadaq;
 
 import ti.sysbios.knl.Swi;
+import platforms.tiva.UartPort;
 
 @ModuleStartup
 module Export {
@@ -63,32 +64,13 @@ module Export {
         Bool full;
     };
 
-    struct UartPort {
-        UInt32 base;
-        UInt32 periph;
-        UInt32 gpioPeriph;
-        UInt32 gpioBase;
-        UInt32 gpioPins;
-        UInt32 pinAssignRx;
-        UInt32 pinAssignTx;
-        UInt32 udmaChanTx;
-        UInt32 udmaChanRx;
-    };
-
     metaonly readonly config ExportBuffer exportBuffers[];
-
-    // Human-readable map used in constructing UartPort state
-    metaonly readonly config Any uartGpioPorts = [
-        {letter: 'A', rxPin: 0, txPin: 1}, // UART 0
-        {letter: 'C', rxPin: 4, txPin: 5}, // UART 1
-        // TODO: rest of ports
-    ];
 
     struct Module_State {
         ExportBuffer expBuffers[length];
         ExportBuffer *curExpBuffer; // currently transfered buffer
         UInt32 bufferSeqNum;
-        const UartPort uartPort;
+        UartPort.Handle uartPort;
         Swi.Handle exportBuffersSwi;
     };
 }
