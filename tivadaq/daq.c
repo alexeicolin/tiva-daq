@@ -9,6 +9,7 @@
 #include <Daq.h>
 
 #include "leds.h"
+#include "console.h"
 
 /* Different blink rate divisors to encode multiple states onto one LED */
 #define BLINK_RATE_STOPPED 2
@@ -28,6 +29,12 @@ Void onAbort()
 {
     setLed(LED_RED, TRUE);
     System_abortStd();
+}
+
+Void onExit(Int status)
+{
+    closeConsole();
+    System_exitStd(status);
 }
 
 Void onDMAError(UArg arg)
@@ -98,6 +105,7 @@ Void pulseLed()
 Int main(Int argc, Char* argv[])
 {
     initLeds();
+    openConsole();
     pulseLed();
     Swi_post(startStopSwi);
     BIOS_start();

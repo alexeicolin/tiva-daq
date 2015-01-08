@@ -24,5 +24,5 @@ for each (var targ in Build.targets) {
         lopts: LOPTS[targ.name],
     };
     var exec = Pkg.addExecutable("daq", targ, targ.platform, execAttrs);
-    exec.addObjects(["daq.c", "leds.c"]);
+    exec.addObjects(["daq.c", "leds.c", "console.c"]);
 }
