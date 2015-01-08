@@ -1,4 +1,5 @@
 #include <xdc/std.h>
+#include <xdc/runtime/Startup.h>
 #include <ti/drivers/GPIO.h>
 
 #include <stdint.h>
@@ -7,14 +8,12 @@
 #include <driverlib/gpio.h>
 #include <driverlib/sysctl.h>
 
-#include "leds.h"
-
-#define PULSE_DELAY_ITERS 100000
+#include "package/internal/Leds.xdc.h"
 
 #define LED_OFF (0)
 #define LED_ON  (~0)
 
-static const GPIO_HWAttrs gpioHWAttrs[LED_COUNT] = {
+static const GPIO_HWAttrs gpioHWAttrs[Leds_Led_COUNT] = {
     {GPIO_PORTF_BASE, GPIO_PIN_1, GPIO_OUTPUT}, /* LED_RED */
     {GPIO_PORTF_BASE, GPIO_PIN_2, GPIO_OUTPUT}, /* LED_BLUE */
     {GPIO_PORTF_BASE, GPIO_PIN_3, GPIO_OUTPUT}, /* LED_GREEN */
@@ -28,48 +27,45 @@ const GPIO_Config GPIO_config[] = {
     {NULL},
 };
 
-struct LedState {
-    Bool on;
-    UInt32 blinkRate;
-};
-
-static struct LedState ledState[LED_COUNT];
-static UInt32 blinkTicks = 0;
-
-Void setLed(Led led, Bool on)
+Void Leds_setLed(Leds_Led led, Bool on)
 {
     GPIO_write(led, on ? LED_ON : LED_OFF);
 }
 
-Void pulseLed(Led led)
+Void Leds_pulseLed(Leds_Led led)
 {
-    Int i = PULSE_DELAY_ITERS;
-    setLed(led, TRUE);
+    Int i = Leds_pulseDelayIters;
+    Leds_setLed(led, TRUE);
     while (i--);
-    setLed(led, FALSE);
+    Leds_setLed(led, FALSE);
 }
 
-Void blinkLed(Led led, UInt32 rate)
+Void Leds_blinkLed(Leds_Led led, UInt32 rate)
 {
-    ledState[led].on = FALSE;
-    ledState[led].blinkRate = rate;
+    Leds_LedState *ledState = &module->ledState[led];
+    ledState->on = FALSE;
+    ledState->blinkRate = rate;
 }
 
-Void blinkTick(UArg arg)
+Void Leds_blinkTick(UArg arg)
 {
     Int led;
-    for (led = 0; led < LED_COUNT; ++led) {
-        if (ledState[led].blinkRate &&
-            blinkTicks % ledState[led].blinkRate == 0) {
-            ledState[led].on = !ledState[led].on;
-            setLed(led, ledState[led].on);
+    Leds_LedState *ledState;
+    for (led = 0; led < Leds_Led_COUNT; ++led) {
+        ledState = &module->ledState[led];
+        if (ledState->blinkRate &&
+            module->blinkTicks % ledState->blinkRate == 0) {
+            ledState->on = !ledState->on;
+            Leds_setLed(led, ledState->on);
         }
     }
-    blinkTicks++;
+    module->blinkTicks++;
 }
 
-Void initLeds(Void)
+Int Leds_Module_startup(Int state)
 {
+    Leds_Led led;
+
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
 
     GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_1); /* LED_RED */
@@ -78,7 +74,8 @@ Void initLeds(Void)
 
     GPIO_init(); /* Once GPIO_init is called, GPIO_config cannot be changed */
 
-    GPIO_write(LED_RED, LED_OFF);
-    GPIO_write(LED_GREEN, LED_OFF);
-    GPIO_write(LED_BLUE, LED_OFF);
+    for (led = 0; led < Leds_Led_COUNT; ++led)
+        GPIO_write(led, LED_OFF);
+
+    return Startup_DONE;
 }
