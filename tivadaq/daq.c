@@ -14,6 +14,8 @@
 #define BLINK_RATE_STOPPED 2
 #define BLINK_RATE_RUNNING 1
 
+#define PULSE_DELAY_ITERS 100000
+
 static Bool isRunning = FALSE;
 static UInt32 blinkRateDivisor = BLINK_RATE_STOPPED;
 
@@ -74,9 +76,18 @@ Void onExportTxCompleted()
     setLed(LED_GREEN, FALSE);
 }
 
+Void pulseLed()
+{
+    Int i = PULSE_DELAY_ITERS;
+    setLed(LED_BLUE, TRUE);
+    while (i--);
+    setLed(LED_BLUE, FALSE);
+}
+
 Int main(Int argc, Char* argv[])
 {
     initLeds();
+    pulseLed();
     Swi_post(startStopSwi);
     BIOS_start();
     return 0;
