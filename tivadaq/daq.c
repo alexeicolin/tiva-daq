@@ -24,6 +24,12 @@ Void onException(Void *excp)
     setLed(LED_RED, TRUE);
 }
 
+Void onAbort()
+{
+    setLed(LED_RED, TRUE);
+    System_abortStd();
+}
+
 Void onDMAError(UArg arg)
 {
     UInt32 status = uDMAErrorStatusGet();
