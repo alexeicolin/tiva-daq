@@ -47,8 +47,12 @@ Void Console_open()
     uartTivaHWAttrs[UART_INDEX].intNum = uartPort->intNum;
 
     SysCtlPeripheralEnable(rxPeriph->periph);
+    SysCtlPeripheralSleepEnable(rxPeriph->periph);
+    SysCtlPeripheralDeepSleepEnable(rxPeriph->periph);
+
     SysCtlPeripheralEnable(txPeriph->periph);
-    // TODO: enable in sleep mode
+    SysCtlPeripheralSleepEnable(txPeriph->periph);
+    SysCtlPeripheralDeepSleepEnable(txPeriph->periph);
 
     SysCtlPeripheralEnable(uartPort->periph);
     SysCtlPeripheralSleepEnable(uartPort->periph);
