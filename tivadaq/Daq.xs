@@ -3,6 +3,9 @@ var Hwi;
 var BIOS;
 var PlatformInfo;
 var GpioPort;
+var Adc;
+var AdcSeq;
+var AdcChan;
 
 function module$meta$init()
 {
@@ -10,9 +13,10 @@ function module$meta$init()
     Hwi = xdc.useModule('ti.sysbios.hal.Hwi');
     PlatformInfo = xdc.useModule('platforms.tiva.PlatformInfo');
     GpioPort = xdc.useModule('platforms.tiva.GpioPort');
+    Adc = xdc.useModule('platforms.tiva.Adc');
+    AdcSeq = xdc.useModule('platforms.tiva.AdcSeq');
+    AdcChan = xdc.useModule('platforms.tiva.AdcChan');
     Export = xdc.useModule('tivadaq.Export');
-
-    populateHardwareInfo(this);
 }
 
 function module$use()
@@ -83,19 +87,12 @@ function module$validate()
 
 function module$static$init(state, mod)
 {
-    // Helpful intermediate values
-    var ADC_SEQ = PlatformInfo.ADC_O_SSMUX0;
-    var ADC_SEQ_STEP = PlatformInfo.ADC_O_SSMUX1 - PlatformInfo.ADC_O_SSMUX0;
-    var ADC_SSFIFO = PlatformInfo.ADC_O_SSFIFO0 - PlatformInfo.ADC_O_SSMUX0;
-
     for (var adc = 0; adc < this.NUM_ADCS; ++adc) {
 
         var adcConfig = mod.daqConfig.adcs[adc];
         var adcState = state.daqState.adcs[adc];
 
-        adcState.periph = PlatformInfo['SYSCTL_PERIPH_ADC' + adc];
-        adcState.base = PlatformInfo['ADC' + adc + '_BASE'];
-
+        adcState.adcDev = Adc.create(adc);
         adcState.hwAvgFactor = adcConfig.hwAvgFactor;
 
         var triggerTimerNeeded = false;
@@ -114,6 +111,8 @@ function module$static$init(state, mod)
             seqState.enabled = seqConf.enabled;
             seqState.priority = seqConf.priority;
 
+            seqState.seqDev = seqState.enabled ? AdcSeq.create(adc, seq) : null;
+
             // Copy and initialize all unused elements of samples list.
             // This is a workaround due to inability to use '[length]'
             // due to broken generating code (see comments in .xdc).
@@ -122,20 +121,21 @@ function module$static$init(state, mod)
                 samples: [],
             };
             for (var i = 0; i < mod.MAX_SAMPLES_IN_SEQ; ++i) {
-                if (i < seqConf.samples.length)
-                    seqState.samples.samples[i] = seqConf.samples[i];
-                else
-                    seqState.samples.samples[i] = mod.AdcInChan_A0;
+                if (i < seqConf.samples.length) {
+                    var type, idx;
+                    if (seqConf.samples[i] == mod.AdcInChan_TS) {
+                        type = AdcChan.Type_TEMPERATURE;
+                        idx = undefined;
+                    } else {
+                        type = AdcChan.Type_ANALOG;
+                        idx = seqConf.samples[i];
+                    }
+                    seqState.samples.samples[i] = AdcChan.create(type, idx);
+                } else {
+                    seqState.samples.samples[i] = null;
+                }
             }
             seqState.samples.count = seqConf.samples.length;
-
-            var dmaChanNum = PlatformInfo['UDMA_CHANNEL_NUM_ADC_' + adc + '_' + seq];
-            seqState.dataAddr =
-                adcState.base + ADC_SEQ + ADC_SEQ_STEP * seq + ADC_SSFIFO;
-            seqState.dmaInt = PlatformInfo['ADC_INT_DMA_SS' + seq];
-            seqState.dmaChanNum = PlatformInfo['UDMA_CHANNEL_ADC_' + adc + '_' + seq];
-            seqState.dmaChanAssign = PlatformInfo[
-                        'UDMA_CH' + dmaChanNum + '_ADC' + adc + '_' + seq];
 
             for (var bufIdx = 0; bufIdx < this.NUM_BUFS_PER_SEQ; ++bufIdx) {
 
@@ -212,31 +212,6 @@ function configTriggerTimer(mod, timerCfg, samplesPerSec)
         period: freqHz / mod.TRIGGER_TIMER_DIVISOR / samplesPerSec,
     };
     return timerState;
-}
-
-function populateHardwareInfo(mod)
-{
-    // Build ADC channel map
-    // TODO: could optimize mod to include only ports that are actually used
-
-    for (var i = 0; i < mod.adcInChanDescs.length; ++i) {
-        var chanDesc = mod.adcInChanDescs[i];
-        var adcInChan = {
-            gpioPort: GpioPort.create(chanDesc.port, chanDesc.pin),
-        };
-        mod.adcInChans.length += 1;
-        mod.adcInChans[mod.adcInChans.length -1] = adcInChan;
-    }
-
-    // Map: (ADC in chan num) -> ADC_CTL_{CH*,TS}
-    var chan;
-    for (chan = mod.AdcInChan_A_FIRST; chan <= mod.AdcInChan_A_LAST; ++chan) {
-        mod.adcInChanToCtl.length += 1; 
-        mod.adcInChanToCtl[mod.adcInChanToCtl.length - 1] =
-            PlatformInfo['ADC_CTL_CH' + chan];
-    }
-    mod.adcInChanToCtl.length += 1; 
-    mod.adcInChanToCtl[mod.adcInChanToCtl.length - 1] = PlatformInfo['ADC_CTL_TS'];
 }
 
 function isPowerOf2(n)

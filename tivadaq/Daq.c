@@ -5,6 +5,9 @@
 
 #include <platforms/tiva/GpioPeriph.h>
 #include <platforms/tiva/GpioPort.h>
+#include <platforms/tiva/Adc.h>
+#include <platforms/tiva/AdcSeq.h>
+#include <platforms/tiva/AdcChan.h>
 
 #include <Export.h>
 
@@ -43,20 +46,22 @@ static Void setupDMAADCTransfer(Int adc, Int seq, Int idx)
 {
     const Daq_AdcState *adcState = &module->daqState.adcs[adc];
     const Daq_SeqState *seqState = &adcState->seqs[seq];
+    const AdcSeq_Info *seqDev = AdcSeq_getInfo(seqState->seqDev);
 
     // static assert NUM_BUFS_PER_SEQ == 2
     UInt32 select = idx ? UDMA_ALT_SELECT : UDMA_PRI_SELECT;
 
-    uDMAChannelTransferSet(seqState->dmaChanNum | select, UDMA_MODE_PINGPONG,
-        seqState->dataAddr, seqState->payloadAddr[idx], seqState->numSamples);
+    uDMAChannelTransferSet(seqDev->dmaChanNum | select, UDMA_MODE_PINGPONG,
+        seqDev->dataAddr, seqState->payloadAddr[idx], seqState->numSamples);
 }
 
 static Void setupDMAADCControlSet(Int adc, Int seq, UInt32 bufSelect)
 {
     const Daq_AdcState *adcState = &module->daqState.adcs[adc];
     const Daq_SeqState *seqState = &adcState->seqs[seq];
+    const AdcSeq_Info *seqDev = AdcSeq_getInfo(seqState->seqDev);
 
-    uDMAChannelControlSet(seqState->dmaChanNum | bufSelect,
+    uDMAChannelControlSet(seqDev->dmaChanNum | bufSelect,
                           UDMA_SIZE_16 |
                           UDMA_SRC_INC_NONE |
                           UDMA_DST_INC_16 |
@@ -80,17 +85,18 @@ Void onSampleTransferComplete(UArg arg)
 
     const Daq_AdcState *adcState = &module->daqState.adcs[adc];
     const Daq_SeqState *seqState = &adcState->seqs[seq];
-    UInt32 adcBase = adcState->base;
+    const Adc_Info *adcDev = Adc_getInfo(adcState->adcDev);
+    const AdcSeq_Info *seqDev = AdcSeq_getInfo(seqState->seqDev);
 
     Bool primaryMode, altMode;
 
-    UInt32 status = ADCIntStatusEx(adcBase, TRUE);
-    ADCIntClearEx(adcBase, status);
+    UInt32 status = ADCIntStatusEx(adcDev->base, TRUE);
+    ADCIntClearEx(adcDev->base, status);
 
-    Assert_isTrue(!ADCSequenceUnderflow(adcBase, seq), NULL);
+    Assert_isTrue(!ADCSequenceUnderflow(adcDev->base, seq), NULL);
 
-    primaryMode = uDMAChannelModeGet(seqState->dmaChanNum | UDMA_PRI_SELECT);
-    altMode = uDMAChannelModeGet(seqState->dmaChanNum | UDMA_ALT_SELECT);
+    primaryMode = uDMAChannelModeGet(seqDev->dmaChanNum | UDMA_PRI_SELECT);
+    altMode = uDMAChannelModeGet(seqDev->dmaChanNum | UDMA_ALT_SELECT);
 
     /* If both have stopped, then we didn't process them in time */
     Assert_isTrue(!(primaryMode == UDMA_MODE_STOP &&
@@ -104,17 +110,10 @@ Void onSampleTransferComplete(UArg arg)
         Assert_isTrue(FALSE, NULL); /* shouldn't get here if neither is ready */
 }
 
-static Void initAdcInputPin(UInt32 chanNum)
+static Void initAdcInputPin(const AdcChan_Info *adcChan)
 {
-    const Daq_AdcInChan *adcInChan;
-    const GpioPort_Info *gpioPort;
-    const GpioPeriph_Info *gpioPeriph;
-
-    Assert_isTrue(chanNum < Daq_adcInChans.length, NULL);
-    adcInChan = &Daq_adcInChans.elem[chanNum];
-   
-    gpioPort = GpioPort_getInfo(adcInChan->gpioPort);
-    gpioPeriph = GpioPeriph_getInfo(gpioPort->periph);
+    const GpioPort_Info *gpioPort = GpioPort_getInfo(adcChan->gpioPort);
+    const GpioPeriph_Info *gpioPeriph = GpioPeriph_getInfo(gpioPort->periph);
 
     SysCtlPeripheralEnable(gpioPeriph->periph);
     GPIOPinTypeADC(gpioPeriph->base, gpioPort->pin);
@@ -123,27 +122,27 @@ static Void initAdcInputPin(UInt32 chanNum)
 static UInt initADCSequence(Int adc, Int seq)
 {
     Int sample;
-    Daq_AdcInChanName sampleChanNum;
     UInt32 sampleChanCtl;
     const Daq_AdcState *adcState = &module->daqState.adcs[adc];
     const Daq_SeqState *seqState = &adcState->seqs[seq];
-    UInt32 adcBase = adcState->base;
+    const Adc_Info *adcDev = Adc_getInfo(adcState->adcDev);
+    const AdcChan_Info *sampleChan;
 
-    ADCSequenceDisable(adcBase, seq);
-    ADCSequenceConfigure(adcBase, seq, seqState->trigger, seqState->priority);
+    ADCSequenceDisable(adcDev->base, seq);
+    ADCSequenceConfigure(adcDev->base, seq, seqState->trigger, seqState->priority);
 
     for (sample = 0; sample < seqState->samples.count; ++sample) {
-        sampleChanNum = seqState->samples.samples[sample];
-        Assert_isTrue(sampleChanNum < Daq_adcInChanToCtl.length, NULL);
-        sampleChanCtl = Daq_adcInChanToCtl.elem[sampleChanNum];
+        sampleChan = AdcChan_getInfo(seqState->samples.samples[sample]);
+        sampleChanCtl = sampleChan->ctlValue;
+        // TODO: move this IE, END logic to meta-domain
         if (sample == seqState->samples.count - 1)
             sampleChanCtl |= ADC_CTL_IE | ADC_CTL_END;
-        ADCSequenceStepConfigure(adcBase, seq, sample, sampleChanCtl);
-        if (isAnalogAdcInChan(sampleChanNum))
-            initAdcInputPin(sampleChanNum);
+        ADCSequenceStepConfigure(adcDev->base, seq, sample, sampleChanCtl);
+        if (sampleChan->type == AdcChan_Type_ANALOG)
+            initAdcInputPin(sampleChan);
     }
 
-    ADCSequenceEnable(adcBase, seq);
+    ADCSequenceEnable(adcDev->base, seq);
     return sample; /* sequence length */
 }
 
@@ -151,16 +150,18 @@ static Void initADCDMA(Int adc, Int seq)
 {
     const Daq_AdcState *adcState = &module->daqState.adcs[adc];
     const Daq_SeqState *seqState = &adcState->seqs[seq];
+    const Adc_Info *adcDev = Adc_getInfo(adcState->adcDev);
+    const AdcSeq_Info *seqDev = AdcSeq_getInfo(seqState->seqDev);
 
-    ADCSequenceDMAEnable(adcState->base, seq);
-    ADCIntEnableEx(adcState->base, seqState->dmaInt);
+    ADCSequenceDMAEnable(adcDev->base, seq);
+    ADCIntEnableEx(adcDev->base, seqDev->dmaInt);
 
-    uDMAChannelAssign(seqState->dmaChanAssign);
+    uDMAChannelAssign(seqDev->dmaChanAssign);
 
-    uDMAChannelAttributeDisable(seqState->dmaChanNum,
+    uDMAChannelAttributeDisable(seqDev->dmaChanNum,
                                 UDMA_ATTR_ALTSELECT |
                                 UDMA_ATTR_REQMASK);
-    uDMAChannelAttributeDisable(seqState->dmaChanNum,
+    uDMAChannelAttributeDisable(seqDev->dmaChanNum,
                                 UDMA_ATTR_HIGH_PRIORITY |
                                 UDMA_ATTR_USEBURST);
     setupDMAADCControlSet(adc, seq, UDMA_PRI_SELECT);
@@ -168,7 +169,7 @@ static Void initADCDMA(Int adc, Int seq)
     setupDMAADCTransfer(adc, seq, 0);
     setupDMAADCTransfer(adc, seq, 1);
 
-    uDMAChannelEnable(seqState->dmaChanNum);
+    uDMAChannelEnable(seqDev->dmaChanNum);
 }
 
 static Void initADCTimer(Int adc)
@@ -191,17 +192,22 @@ static Void initADCTimer(Int adc)
 static Void initADCHwAvg(Int adc)
 {
     const Daq_AdcState *adcState = &module->daqState.adcs[adc];
-    ADCHardwareOversampleConfigure(adcState->base, adcState->hwAvgFactor);
+    const Adc_Info *adcDev = Adc_getInfo(adcState->adcDev);
+    ADCHardwareOversampleConfigure(adcDev->base, adcState->hwAvgFactor);
 }
 
 static Void initADC()
 {
     const Daq_AdcState *adcState;
+    const Adc_Info *adcDev;
     Int adc, seq;
 
     for (adc = 0; adc < Daq_NUM_ADCS; ++adc) {
         adcState = &module->daqState.adcs[adc];
-        SysCtlPeripheralEnable(adcState->periph);
+        adcDev = Adc_getInfo(adcState->adcDev);
+
+        // TODO: don't enable unsued ADCs
+        SysCtlPeripheralEnable(adcDev->periph);
         for (seq = 0; seq < Daq_NUM_SEQS; ++seq) {
             if (adcState->seqs[seq].enabled) {
                 initADCSequence(adc, seq);
@@ -293,9 +299,10 @@ Void Daq_trigger(Int adc, Int seq)
 {
     const Daq_AdcState *adcState = &module->daqState.adcs[adc];
     const Daq_SeqState *seqState = &adcState->seqs[seq];
+    const Adc_Info *adcDev = Adc_getInfo(adcState->adcDev);
 
     Assert_isTrue(seqState->enabled, NULL);
     Assert_isTrue(seqState->trigger == ADC_TRIGGER_PROCESSOR, NULL);
     
-    ADCProcessorTrigger(adcState->base, seq);
+    ADCProcessorTrigger(adcDev->base, seq);
 }

@@ -1,6 +1,9 @@
 package tivadaq;
 
 import platforms.tiva.GpioPort;
+import platforms.tiva.Adc;
+import platforms.tiva.AdcSeq;
+import platforms.tiva.AdcChan;
 
 @ModuleStartup
 module Daq {
@@ -96,14 +99,11 @@ module Daq {
     // Can't use '[length]' due to bug in XDC (see below)
     struct SampleList {
         UInt count;
-        AdcInChanName samples[MAX_SAMPLES_IN_SEQ];
+        AdcChan.Handle samples[MAX_SAMPLES_IN_SEQ];
     };
 
     struct SeqState {
-        Void *dataAddr;
-        UInt32 dmaInt;
-        UInt32 dmaChanNum;
-        UInt32 dmaChanAssign;
+        AdcSeq.Handle seqDev;
 
         Bool enabled;
         UInt8 priority;
@@ -121,7 +121,6 @@ module Daq {
         // in Module_State struct.
         // UInt8 bufs[NUM_BUFS_PER_SEQ][length];
 
-
         UInt8 *payloadAddr[NUM_BUFS_PER_SEQ]; // optional, could recompute this
 
         UInt8 numSamples;
@@ -138,8 +137,7 @@ module Daq {
     };
 
     struct AdcState {
-        UInt32 periph;
-        UInt32 base;
+        Adc.Handle adcDev;
         TimerState triggerTimer;
         UInt8 hwAvgFactor;
         SeqState seqs[NUM_SEQS];
@@ -148,43 +146,6 @@ module Daq {
     struct DaqState {
         AdcState adcs[NUM_ADCS];
     };
-
-    // Hardware info that is needed at runtime
-
-    struct AdcInChan {
-        GpioPort.Handle gpioPort;
-    };
-
-    metaonly struct GpioPortEntry {
-        String port;
-        UInt8 pin;
-    };
-
-    // Map: ADC channel -> GPIO port, pin
-    // A human-readable metaonly map, from which a target-visible map is built
-    metaonly readonly config GpioPortEntry adcInChanDescs[] = [
-         {port: 'E', pin: 3}, // CH 0
-         {port: 'E', pin: 2}, // CH 1
-         {port: 'E', pin: 1}, // CH 2
-         {port: 'E', pin: 0}, // CH 3
-         {port: 'D', pin: 3}, // CH 4
-         {port: 'D', pin: 2}, // CH 5
-         {port: 'D', pin: 1}, // CH 6
-         {port: 'D', pin: 0}, // CH 7
-         {port: 'E', pin: 5}, // CH 8
-         {port: 'E', pin: 4}, // CH 9
-         {port: 'B', pin: 4}, // CH 10
-         {port: 'B', pin: 5}, // CH 11
-    ];
-
-    // Initialized in code from adcInChanDescs to reduce boiler-plate
-    readonly config AdcInChan adcInChans[length];
-
-    // Map: (ADC in chan num) -> ADC_CTL_CH*
-    // Initialized in code to reduce boiler-plate.
-    // TODO: this mapping could be done in meta domain, but then input mapping
-    // would have to be a search loop (since would not have index).
-    readonly config UInt32 adcInChanToCtl[length];
 
     // Trigger timer settings
     // TODO: calculate divisor automatically from sample rate
