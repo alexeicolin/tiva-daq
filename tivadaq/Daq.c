@@ -8,6 +8,7 @@
 #include <platforms/tiva/Adc.h>
 #include <platforms/tiva/AdcSeq.h>
 #include <platforms/tiva/AdcChan.h>
+#include <platforms/tiva/GpTimer.h>
 
 #include <Export.h>
 
@@ -176,17 +177,18 @@ static Void initADCTimer(Int adc)
 {
     const Daq_TimerState *triggerTimer =
         &module->daqState.adcs[adc].triggerTimer;
+    const GpTimer_Info *timerDev = GpTimer_getInfo(triggerTimer->timerDev);
 
-    SysCtlPeripheralEnable(triggerTimer->periph);
-    TimerConfigure(triggerTimer->base, triggerTimer->cfg);
+    SysCtlPeripheralEnable(timerDev->periph);
+    TimerConfigure(timerDev->base, timerDev->cfg);
 
-    TimerPrescaleSet(triggerTimer->base, triggerTimer->half,
+    TimerPrescaleSet(timerDev->base, timerDev->half,
                      triggerTimer->prescaler);
-    TimerLoadSet(triggerTimer->base, triggerTimer->half, triggerTimer->period);
-    TimerControlTrigger(triggerTimer->base, triggerTimer->half, TRUE);
+    TimerLoadSet(timerDev->base, timerDev->half, triggerTimer->period);
+    TimerControlTrigger(timerDev->base, timerDev->half, TRUE);
 
     /* stop in debug mode */
-    TimerControlStall(triggerTimer->base, triggerTimer->half, true);
+    TimerControlStall(timerDev->base, timerDev->half, true);
 }
 
 static Void initADCHwAvg(Int adc)
@@ -267,6 +269,7 @@ static Void toggleAdcTimers(Bool enable)
     const Daq_AdcState *adcState;
     const Daq_SeqState *seqState;
     const Daq_TimerState *triggerTimer;
+    const GpTimer_Info *timerDev = GpTimer_getInfo(triggerTimer->timerDev);
 
     for (adc = 0; adc < Daq_NUM_ADCS; ++adc) {
         adcState = &module->daqState.adcs[adc];
@@ -275,9 +278,9 @@ static Void toggleAdcTimers(Bool enable)
             if (seqState->enabled && seqState->trigger == ADC_TRIGGER_TIMER) {
                 triggerTimer = &adcState->triggerTimer;
                 if (enable)
-                    TimerEnable(triggerTimer->base, triggerTimer->half);
+                    TimerEnable(timerDev->base, timerDev->half);
                 else
-                    TimerDisable(triggerTimer->base, triggerTimer->half);
+                    TimerDisable(timerDev->base, timerDev->half);
             }
         }
     }

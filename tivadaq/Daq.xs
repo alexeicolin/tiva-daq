@@ -6,6 +6,7 @@ var GpioPort;
 var Adc;
 var AdcSeq;
 var AdcChan;
+var GpTimer;
 
 function module$meta$init()
 {
@@ -16,6 +17,7 @@ function module$meta$init()
     Adc = xdc.useModule('platforms.tiva.Adc');
     AdcSeq = xdc.useModule('platforms.tiva.AdcSeq');
     AdcChan = xdc.useModule('platforms.tiva.AdcChan');
+    GpTimer = xdc.useModule('platforms.tiva.GpTimer');
     Export = xdc.useModule('tivadaq.Export');
 }
 
@@ -182,10 +184,7 @@ function module$static$init(state, mod)
                                                        adcConfig.samplesPerSec);
         } else {
             adcState.triggerTimer = {
-                periph: 0,
-                base: 0,
-                half: 0,
-                cfg: 0,
+                timerDev: null,
                 prescaler: 0,
                 period: 0
             }
@@ -199,15 +198,11 @@ function configTriggerTimer(mod, timerCfg, samplesPerSec)
     if (freqObj.hi)
         throw "Frequencies above 2^32-1 are not supported";
     var freqHz = freqObj.lo;
+
+    var half = timerCfg.half == mod.TimerHalf_A ?
+                    GpTimer.Half_A : GpTimer.Half_B;
     var timerState = {
-        periph: PlatformInfo['SYSCTL_PERIPH_TIMER' + timerCfg.idx],
-        base: PlatformInfo['TIMER' + timerCfg.idx + '_BASE'],
-        half: timerCfg.half == mod.TimerHalf_A ?
-                PlatformInfo['TIMER_A'] : PlatformInfo['TIMER_B'],
-        cfg: ((timerCfg.half == mod.TimerHalf_A ?
-                    PlatformInfo['TIMER_CFG_A_PERIODIC'] :
-                    PlatformInfo['TIMER_CFG_B_PERIODIC']) |
-                PlatformInfo['TIMER_CFG_SPLIT_PAIR']),
+        timerDev: GpTimer.create(timerCfg.idx, half),
         prescaler: mod.TRIGGER_TIMER_DIVISOR - 1,
         period: freqHz / mod.TRIGGER_TIMER_DIVISOR / samplesPerSec,
     };

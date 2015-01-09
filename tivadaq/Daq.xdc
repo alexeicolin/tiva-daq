@@ -4,6 +4,7 @@ import platforms.tiva.GpioPort;
 import platforms.tiva.Adc;
 import platforms.tiva.AdcSeq;
 import platforms.tiva.AdcChan;
+import platforms.tiva.GpTimer;
 
 @ModuleStartup
 module Daq {
@@ -128,10 +129,7 @@ module Daq {
     };
 
     struct TimerState {
-        UInt32 periph;
-        UInt32 base;
-        UInt32 half;
-        UInt32 cfg;
+        GpTimer.Handle timerDev;
         UInt32 prescaler;
         UInt32 period;
     };
