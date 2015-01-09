@@ -1,10 +1,12 @@
 var Clock;
 var GPIO;
+var GpioPort;
 
 function module$meta$init()
 {
     Clock = xdc.useModule('ti.sysbios.knl.Clock');
     GPIO = xdc.useModule('ti.drivers.GPIO');
+    GpioPort = xdc.useModule('platforms.tiva.GpioPort');
 }
 
 function module$static$init(state, mod)
@@ -14,8 +16,17 @@ function module$static$init(state, mod)
     blinkClockObj.startFlag = true;
 
     state.blinkTicks = 0;
-    for (var i = 0; i < mod.Led_COUNT; ++i)
-        state.ledState[i] = {on: false, blinkRate: 0};
+    state.ledState.length = mod.gpioPorts.length;
+    for (var i = 0; i < mod.gpioPorts.length; ++i) {
+
+        var gpioPort = mod.gpioPorts[i];
+        state.ledState[i] =
+            {
+             gpioPort: GpioPort.create(gpioPort.port, gpioPort.pin),
+             on: false,
+             blinkRate: 0,
+            };
+    }
 }
 
 function msecToClockTicks(ms)
