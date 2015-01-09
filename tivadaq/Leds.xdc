@@ -4,9 +4,9 @@ import platforms.tiva.GpioPort;
 
 @ModuleStartup
 module Leds {
+    metaonly config UInt32 blinkTickPeriodMs = 500;
+    config UInt32 pulseDelayIters = 100000;
 
-    metaonly readonly config UInt32 blinkTickPeriodMs = 500;
-    readonly config UInt32 pulseDelayIters = 100000;
 
     Void setLed(UInt led, Bool on);
     Void pulseLed(UInt led);
