@@ -201,13 +201,23 @@ static Void initADC()
     const Daq_AdcState *adcState;
     const Adc_Info *adcDev;
     Int adc, seq;
+    Bool adcEnabled;
 
     for (adc = 0; adc < Daq_NUM_ADCS; ++adc) {
         adcState = &module->daqState.adcs[adc];
         adcDev = Adc_getInfo(adcState->adcDev);
 
-        // TODO: don't enable unsued ADCs
-        SysCtlPeripheralEnable(adcDev->periph);
+        adcEnabled = false;
+        for (seq = 0; seq < Daq_NUM_SEQS; ++seq) {
+            if (adcState->seqs[seq].enabled) {
+                adcEnabled = true;
+                break;
+            }
+        }
+
+        if (adcEnabled)
+            SysCtlPeripheralEnable(adcDev->periph);
+
         for (seq = 0; seq < Daq_NUM_SEQS; ++seq) {
             if (adcState->seqs[seq].enabled) {
                 initADCSequence(adc, seq);
