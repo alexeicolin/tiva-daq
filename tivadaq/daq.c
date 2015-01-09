@@ -7,9 +7,8 @@
 #include <xdc/cfg/global.h> // globals defined in .cfg file, prefixed with 'g_' 
 
 #include <Leds.h>
+#include <Console.h>
 #include <Daq.h>
-
-#include "console.h"
 
 static Bool isRunning = FALSE;
 
@@ -26,7 +25,7 @@ Void onAbort()
 
 Void onExit(Int status)
 {
-    closeConsole();
+    Console_close();
     System_exitStd(status);
 }
 
@@ -78,7 +77,7 @@ Void onExportTxCompleted()
 
 Int main(Int argc, Char* argv[])
 {
-    openConsole();
+    Console_open();
     Leds_pulseLed(g_statusLed);
     Swi_post(startStopSwi);
     BIOS_start();

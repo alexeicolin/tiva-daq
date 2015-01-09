@@ -18,6 +18,7 @@ for each (var targ in Build.targets) {
         "Export.c",
         "Daq.c",
         "Leds.c",
+        "Console.c",
     ];
     var lib = Pkg.addLibrary("lib/" + Pkg.name, targ)
     lib.addObjects(srcs, libAttrs);
@@ -29,5 +30,5 @@ for each (var targ in Build.targets) {
         lopts: LOPTS[targ.name],
     };
     var exec = Pkg.addExecutable("daq", targ, targ.platform, execAttrs);
-    exec.addObjects(["daq.c", "console.c"]);
+    exec.addObjects(["daq.c"]);
 }
