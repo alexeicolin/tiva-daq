@@ -4,6 +4,8 @@
 #include <ti/drivers/uart/UARTTiva.h>
 
 #include <platforms/tiva/UartPort.h>
+#include <platforms/tiva/GpioPort.h>
+#include <platforms/tiva/GpioPeriph.h>
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -35,19 +37,28 @@ const UART_Config UART_config[] = {
 Void Console_open()
 {
     UART_Params uartParams;
-    UartPort_Info *uartPort = UartPort_getInfo(module->uartPort);
+    const UartPort_Info *uartPort = UartPort_getInfo(module->uartPort);
+    const GpioPort_Info *rxPin = GpioPort_getInfo(uartPort->rxPin);
+    const GpioPort_Info *txPin = GpioPort_getInfo(uartPort->txPin);
+    const GpioPeriph_Info *rxPeriph = GpioPeriph_getInfo(rxPin->periph);
+    const GpioPeriph_Info *txPeriph = GpioPeriph_getInfo(txPin->periph);
 
     uartTivaHWAttrs[UART_INDEX].baseAddr = uartPort->base;
     uartTivaHWAttrs[UART_INDEX].intNum = uartPort->intNum;
 
-    SysCtlPeripheralEnable(uartPort->gpioPeriph);
+    SysCtlPeripheralEnable(rxPeriph->periph);
+    SysCtlPeripheralEnable(txPeriph->periph);
+    // TODO: enable in sleep mode
+
     SysCtlPeripheralEnable(uartPort->periph);
     SysCtlPeripheralSleepEnable(uartPort->periph);
     SysCtlPeripheralDeepSleepEnable(uartPort->periph);
 
     GPIOPinConfigure(uartPort->pinAssignRx);
     GPIOPinConfigure(uartPort->pinAssignTx);
-    GPIOPinTypeUART(uartPort->gpioBase, uartPort->gpioPins);
+
+    GPIOPinTypeUART(rxPeriph->base, rxPin->pin);
+    GPIOPinTypeUART(txPeriph->base, txPin->pin);
 
     UART_init();
 
