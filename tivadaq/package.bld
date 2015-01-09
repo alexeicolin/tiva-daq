@@ -14,8 +14,13 @@ for each (var targ in Build.targets) {
         incs: INCS[targ.name],
         defs: DEFS[targ.name],
     };
+    var srcs = [
+        "Export.c",
+        "Daq.c",
+        "Leds.c",
+    ];
     var lib = Pkg.addLibrary("lib/" + Pkg.name, targ)
-    lib.addObjects(["Export.c", "Daq.c", "Leds.c"], libAttrs);
+    lib.addObjects(srcs, libAttrs);
 
     var execAttrs = {
         profile: PROFILE,
