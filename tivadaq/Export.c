@@ -5,6 +5,8 @@
 #include <ti/sysbios/knl/Swi.h>
 
 #include <platforms/tiva/UartPort.h>
+#include <platforms/tiva/GpioPort.h>
+#include <platforms/tiva/GpioPeriph.h>
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -124,12 +126,18 @@ Void Export_resetBufferSequenceNum()
 static Void initUART()
 {
     const UartPort_Info *uartPort = UartPort_getInfo(module->uartPort);
+    const GpioPort_Info *rxPin = GpioPort_getInfo(uartPort->rxPin);
+    const GpioPort_Info *txPin = GpioPort_getInfo(uartPort->txPin);
+    const GpioPeriph_Info *rxPeriph = GpioPeriph_getInfo(rxPin->periph);
+    const GpioPeriph_Info *txPeriph = GpioPeriph_getInfo(txPin->periph);
 
-    SysCtlPeripheralEnable(uartPort->gpioPeriph);
+    SysCtlPeripheralEnable(rxPeriph->periph);
+    SysCtlPeripheralEnable(txPeriph->periph);
     SysCtlPeripheralEnable(uartPort->periph);
     GPIOPinConfigure(uartPort->pinAssignRx);
     GPIOPinConfigure(uartPort->pinAssignTx);
-    GPIOPinTypeUART(uartPort->base, uartPort->gpioPins);
+    GPIOPinTypeUART(rxPeriph->base, rxPin->pin);
+    GPIOPinTypeUART(txPeriph->base, txPin->pin);
     UARTConfigSetExpClk(uartPort->base, SysCtlClockGet(), Export_uartBaudRate,
                         UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
                         UART_CONFIG_PAR_NONE);
