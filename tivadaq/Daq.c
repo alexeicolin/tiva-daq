@@ -201,24 +201,32 @@ static Void initADCHwAvg(Int adc)
 static Void initADC()
 {
     const Daq_AdcState *adcState;
+    const Daq_SeqState *seqState;
     const Adc_Info *adcDev;
     Int adc, seq;
-    Bool adcEnabled;
+    Bool adcEnabled, timerNeeded;
 
     for (adc = 0; adc < Daq_NUM_ADCS; ++adc) {
         adcState = &module->daqState.adcs[adc];
         adcDev = Adc_getInfo(adcState->adcDev);
 
         adcEnabled = false;
+        timerNeeded = false;
         for (seq = 0; seq < Daq_NUM_SEQS; ++seq) {
-            if (adcState->seqs[seq].enabled) {
+            seqState = &adcState->seqs[seq];
+            if (seqState->enabled) {
                 adcEnabled = true;
-                break;
+                if (seqState->trigger == ADC_TRIGGER_TIMER) {
+                    timerNeeded = true;
+                    break;
+                }
             }
         }
 
-        if (adcEnabled)
-            SysCtlPeripheralEnable(adcDev->periph);
+        if (!adcEnabled)
+            continue;
+
+        SysCtlPeripheralEnable(adcDev->periph);
 
         for (seq = 0; seq < Daq_NUM_SEQS; ++seq) {
             if (adcState->seqs[seq].enabled) {
@@ -226,8 +234,11 @@ static Void initADC()
                 initADCDMA(adc, seq);
             }
         }
-        initADCTimer(adc);
+
         initADCHwAvg(adc);
+
+        if (timerNeeded)
+            initADCTimer(adc);
     }
 }
 
