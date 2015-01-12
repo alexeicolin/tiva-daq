@@ -77,7 +77,7 @@ Int Leds_Module_startup(Int state)
 
         GPIO_config[led].hwAttrs = &gpioHWAttrs[led];
 
-        SysCtlPeripheralEnable(gpioPeriph->base);
+        SysCtlPeripheralEnable(gpioPeriph->periph);
         GPIOPinTypeGPIOOutput(gpioPeriph->base, gpioPort->pin);
     }
 
