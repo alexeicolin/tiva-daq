@@ -10,7 +10,7 @@ module Console {
   internal:
 
     metaonly config UInt8 uartPortIdx = 0;
-    config UInt8 uartPortBaudRate = 115200;
+    config UInt32 uartPortBaudRate = 115200;
 
     // Human-readable map used in constructing UartPort state
     metaonly readonly config Any uartGpioPorts = [
