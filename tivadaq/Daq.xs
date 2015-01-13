@@ -1,3 +1,5 @@
+var Log;
+var Diags;
 var Export;
 var Hwi;
 var BIOS;
@@ -10,6 +12,8 @@ var GpTimer;
 
 function module$meta$init()
 {
+    Log = xdc.useModule('xdc.runtime.Log');
+    Diags = xdc.useModule('xdc.runtime.Diags');
     BIOS = xdc.useModule('ti.sysbios.BIOS');
     Hwi = xdc.useModule('ti.sysbios.hal.Hwi');
     PlatformInfo = xdc.useModule('platforms.tiva.PlatformInfo');

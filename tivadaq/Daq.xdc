@@ -1,5 +1,8 @@
 package tivadaq;
 
+import xdc.runtime.Log;
+import xdc.runtime.Diags;
+
 import platforms.tiva.GpioPort;
 import platforms.tiva.Adc;
 import platforms.tiva.AdcSeq;
@@ -78,6 +81,16 @@ module Daq {
     Void start();
     Void stop();
     Void trigger(Int adc, Int seq);
+
+    config Log.Event LM_setupDMAADCTransfer = {
+        mask: Diags.USER1,
+        msg: "LM_setupDMAADCTransfer: adc.seq/buf %d.%d/%d, src %p, dest %p, len %u"
+    };
+
+    config Log.Event LM_initBuffer = {
+        mask: Diags.USER1,
+        msg: "LM_initBuffer: adc.seq/buf %d.%d/%d, addr %p, payload %p, exp idx %u"
+    };
 
   internal:
 

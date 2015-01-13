@@ -2,6 +2,7 @@
 #include <xdc/runtime/Assert.h>
 #include <xdc/runtime/Error.h>
 #include <xdc/runtime/Startup.h>
+#include <xdc/runtime/Log.h>
 
 #include <platforms/tiva/GpioPeriph.h>
 #include <platforms/tiva/GpioPort.h>
@@ -51,6 +52,10 @@ static Void setupDMAADCTransfer(Int adc, Int seq, Int idx)
 
     // static assert NUM_BUFS_PER_SEQ == 2
     UInt32 select = idx ? UDMA_ALT_SELECT : UDMA_PRI_SELECT;
+
+    Log_write6(Daq_LM_setupDMAADCTransfer, adc, seq, idx,
+               (IArg)seqDev->dataAddr, (IArg)seqState->payloadAddr[idx],
+               seqState->numSamples);
 
     uDMAChannelTransferSet(seqDev->dmaChanNum | select, UDMA_MODE_PINGPONG,
         seqDev->dataAddr, seqState->payloadAddr[idx], seqState->numSamples);
@@ -260,6 +265,10 @@ static Void initBuffers()
                 for (bufIdx = 0; bufIdx < Daq_NUM_BUFS_PER_SEQ; ++bufIdx) {
                     bufAddr = module->bufs[adc][seq][bufIdx].elem;
                     seqState->payloadAddr[bufIdx] = bufAddr + Export_headerSize;
+                    Log_write6(Daq_LM_initBuffer, adc, seq, bufIdx,
+                               (IArg)bufAddr,
+                               (IArg)seqState->payloadAddr[bufIdx],
+                               seqState->exportBufIdx);
                     Export_setBufferPointer(seqState->exportBufIdx, bufAddr);
                 }
             }
