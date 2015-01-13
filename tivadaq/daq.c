@@ -6,8 +6,9 @@
 
 #include <xdc/cfg/global.h> // globals defined in .cfg file, prefixed with 'g_' 
 
-#include <Leds.h>
-#include <Console.h>
+#include <platforms/tiva/io/Leds.h>
+#include <platforms/tiva/io/Console.h>
+
 #include <Daq.h>
 
 static Bool isRunning = FALSE;
