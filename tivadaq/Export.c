@@ -237,6 +237,7 @@ Void Export_initBuffer(UInt bufId, UInt8 *addr)
 
 Int Export_Module_startup(Int state)
 {
+    Log_write0(Export_LM_startup);
     initUART();
     initUDMA();
     return Startup_DONE;

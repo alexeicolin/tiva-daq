@@ -60,6 +60,10 @@ module Export {
     Void exportAllBuffers();
     Void resetBufferSequenceNum();
 
+    config Log.Event LM_startup = {
+        mask: Diags.INFO,
+        msg: "LM_startup: initializing Export"
+    };
     config Log.Event LM_initBuffer = {
         mask: Diags.INFO,
         msg: "LM_initBuffer: id %u -> addr %p"
