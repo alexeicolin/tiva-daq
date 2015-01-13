@@ -122,7 +122,7 @@ module Export {
     metaonly config ExportBuffer exportBuffers[];
 
     struct Module_State {
-        ExportBuffer expBuffers[length];
+        ExportBuffer exportBuffers[length];
         ExportBuffer *curExpBuffer; // currently transfered buffer
         UInt32 bufferSeqNum;
         UartPort.Handle uartPort;

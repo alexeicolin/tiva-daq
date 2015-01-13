@@ -77,12 +77,12 @@ Void Export_processBuffers(UArg arg1, UArg arg2)
     if (!module->curExpBuffer) {
 
         /* Find first full buffer */
-        for (i = 0; i < module->expBuffers.length; ++i)
-            if (module->expBuffers.elem[i].full)
+        for (i = 0; i < module->exportBuffers.length; ++i)
+            if (module->exportBuffers.elem[i].full)
                 break;
 
-        if (i < module->expBuffers.length) {
-            expBuffer = &module->expBuffers.elem[i];
+        if (i < module->exportBuffers.length) {
+            expBuffer = &module->exportBuffers.elem[i];
             module->curExpBuffer = expBuffer;
 
             Log_write4(Export_LM_transferStarted, i,
@@ -144,10 +144,10 @@ Void Export_onExportComplete(UArg arg)
 
 Void Export_exportBuffer(UInt idx)
 {
-    Assert_isTrue(idx < module->expBuffers.length, NULL);
-    Assert_isTrue(!module->expBuffers.elem[idx].full, NULL);
-    Log_write2(Export_LM_exportBuffer, idx, (IArg)module->expBuffers.elem[idx].addr);
-    module->expBuffers.elem[idx].full = TRUE;
+    Assert_isTrue(idx < module->exportBuffers.length, NULL);
+    Assert_isTrue(!module->exportBuffers.elem[idx].full, NULL);
+    Log_write2(Export_LM_exportBuffer, idx, (IArg)module->exportBuffers.elem[idx].addr);
+    module->exportBuffers.elem[idx].full = TRUE;
     Swi_post(module->exportBuffersSwi);
 }
 
@@ -155,7 +155,7 @@ Void Export_exportAllBuffers()
 {
     UInt8 i;
     Log_write0(Export_LM_exportAllBuffers);
-    for (i = 0; i < module->expBuffers.length; ++i)
+    for (i = 0; i < module->exportBuffers.length; ++i)
         Export_exportBuffer(i);
 }
 
@@ -225,12 +225,12 @@ Void Export_initBuffer(UInt bufId, UInt8 *addr)
 {
     Export_ExportBuffer *buf;
 
-    Assert_isTrue(bufId < module->expBuffers.length, NULL);
+    Assert_isTrue(bufId < module->exportBuffers.length, NULL);
     Assert_isTrue(addr != NULL, NULL);
 
     Log_write2(Export_LM_initBuffer, bufId, (IArg)addr);
 
-    buf = &module->expBuffers.elem[bufId];
+    buf = &module->exportBuffers.elem[bufId];
     bufWriteFixedHeader(addr, buf->size, bufId);
     buf->addr = addr;
 }
