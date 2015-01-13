@@ -3,7 +3,7 @@ var Diags;
 var Export;
 var Hwi;
 var BIOS;
-var PlatformInfo;
+var HwAttrs;
 var GpioPort;
 var Adc;
 var AdcSeq;
@@ -16,7 +16,7 @@ function module$meta$init()
     Diags = xdc.useModule('xdc.runtime.Diags');
     BIOS = xdc.useModule('ti.sysbios.BIOS');
     Hwi = xdc.useModule('ti.sysbios.hal.Hwi');
-    PlatformInfo = xdc.useModule('platforms.tiva.hw.PlatformInfo');
+    HwAttrs = xdc.useModule('platforms.tiva.hw.HwAttrs');
     GpioPort = xdc.useModule('platforms.tiva.hw.GpioPort');
     Adc = xdc.useModule('platforms.tiva.hw.Adc');
     AdcSeq = xdc.useModule('platforms.tiva.hw.AdcSeq');
@@ -173,13 +173,13 @@ function module$static$init(state, mod)
                 if (!arbSize)
                     arbSize = seqConf.samples.length;
                 if (arbSize)
-                    seqState.arbSize = PlatformInfo['UDMA_ARB_' + arbSize];
+                    seqState.arbSize = HwAttrs['UDMA_ARB_' + arbSize];
                 else
                     seqState.arbSize = 0;
             }
 
             if (seqState.enabled) {
-                var intNum = PlatformInfo['INT_ADC' + adc + 'SS' + seq];
+                var intNum = HwAttrs['INT_ADC' + adc + 'SS' + seq];
                 var params = new Hwi.Params;
                 params.arg = (adc << 8) | seq;
                 Hwi.create(intNum, '&onSampleTransferComplete', params);
@@ -238,9 +238,9 @@ function adcTriggerFromEnum(mod, triggerEnum)
 {
     // One of the few hardware values that cannot leverage a regular pattern
     if (triggerEnum == mod.AdcTrigger_PROCESSOR)
-        return PlatformInfo.ADC_TRIGGER_PROCESSOR;
+        return HwAttrs.ADC_TRIGGER_PROCESSOR;
     if (triggerEnum == mod.AdcTrigger_TIMER)
-        return PlatformInfo.ADC_TRIGGER_TIMER;
+        return HwAttrs.ADC_TRIGGER_TIMER;
     throw "Unsupported trigger enum value: " + triggerEnum;
 };
 

@@ -3,7 +3,7 @@ var Diags;
 var BIOS;
 var Hwi;
 var Swi;
-var PlatformInfo;
+var HwAttrs;
 var UartPort;
 
 function module$meta$init()
@@ -13,7 +13,7 @@ function module$meta$init()
     BIOS = xdc.useModule('ti.sysbios.BIOS');
     Hwi = xdc.useModule('ti.sysbios.hal.Hwi');
     Swi = xdc.useModule('ti.sysbios.knl.Swi');
-    PlatformInfo = xdc.useModule('platforms.tiva.hw.PlatformInfo');
+    HwAttrs = xdc.useModule('platforms.tiva.hw.HwAttrs');
     UartPort = xdc.useModule('platforms.tiva.hw.UartPort');
 
     // Header size
@@ -46,7 +46,7 @@ function module$validate()
                        this, "systemClockHz");
 
     for (var i = 0; i < this.exportBuffers.length; ++i) {
-        if (this.exportBuffers[i].size > PlatformInfo.MAX_UDMA_TRANSFER_SIZE) {
+        if (this.exportBuffers[i].size > HwAttrs.MAX_UDMA_TRANSFER_SIZE) {
             this.$logError("Buffer size (" + this.exportBuffers[i].size + ") " +
                            "exceeds max uDMA transfer size " +
                            "(" + this.MAX_UDMA_TRANSFER_SIZE + ")",
@@ -63,7 +63,7 @@ function module$static$init(state, mod)
     for (var i = 0; i < mod.exportBuffers.length; ++i)
         state.exportBuffers[i] = mod.exportBuffers[i];
 
-    var uartIntNum = PlatformInfo['INT_UART' + this.uartPortIdx];
+    var uartIntNum = HwAttrs['INT_UART' + this.uartPortIdx];
     Hwi.create(uartIntNum, '&Export_onExportComplete');
 
     var swiParams = new Swi.Params;

@@ -118,7 +118,7 @@ module Daq {
      *
      * Hardware parameters, like base addresses could be declared here, but
      * we populated the values in code leverages regularity in macro names from
-     * PlatformInfo. This helps reduce repetative boiler-plate.
+     * HwAttrs. This helps reduce repetative boiler-plate.
      */
 
     // Can't use '[length]' due to bug in XDC (see below)
