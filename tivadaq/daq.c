@@ -6,7 +6,7 @@
 
 #include <xdc/cfg/global.h> // globals defined in .cfg file, prefixed with 'g_' 
 
-#include <platforms/tiva/io/Leds.h>
+#include <platforms/tiva/io/Led.h>
 #include <platforms/tiva/io/Console.h>
 
 #include <Daq.h>
@@ -15,12 +15,12 @@ static Bool isRunning = FALSE;
 
 Void onException(Void *excp)
 {
-    Leds_setLed(g_faultLed, TRUE);
+    Led_setLed(g_faultLed, TRUE);
 }
 
 Void onAbort()
 {
-    Leds_setLed(g_faultLed, TRUE);
+    Led_setLed(g_faultLed, TRUE);
     System_abortStd();
 }
 
@@ -46,7 +46,7 @@ static Void start()
 {
     Daq_start();
     Clock_start(tempClockObj);
-    Leds_blinkLed(g_statusLed, g_blinkRateRunning);
+    Led_blinkLed(g_statusLed, g_blinkRateRunning);
     isRunning = TRUE;
 }
 
@@ -54,7 +54,7 @@ static Void stop()
 {
     Clock_stop(tempClockObj);
     Daq_stop();
-    Leds_blinkLed(g_statusLed, g_blinkRateStopped);
+    Led_blinkLed(g_statusLed, g_blinkRateStopped);
     isRunning = FALSE;
 }
 
@@ -68,17 +68,17 @@ Void startStop(UArg arg)
 
 Void onExportTxQueued()
 {
-    Leds_setLed(g_txLed, TRUE);
+    Led_setLed(g_txLed, TRUE);
 }
 
 Void onExportTxCompleted()
 {
-    Leds_setLed(g_txLed, FALSE);
+    Led_setLed(g_txLed, FALSE);
 }
 
 Int main(Int argc, Char* argv[])
 {
-    Leds_pulseLed(g_statusLed);
+    Led_pulseLed(g_statusLed);
     Swi_post(startStopSwi);
     BIOS_start();
     return 0;
