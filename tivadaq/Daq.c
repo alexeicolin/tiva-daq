@@ -270,6 +270,7 @@ static Void initBuffers()
 Int Daq_Module_startup(Int state)
 {
     /* Rely on uDMA init done as part of export module */
+    initBuffers();
     initADC();
     return Startup_DONE;
 }
