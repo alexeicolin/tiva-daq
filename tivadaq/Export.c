@@ -38,6 +38,26 @@ static inline UInt bufWriteUInt(UInt8 *buf, UInt32 n, Int numBytes)
     return numBytes;
 }
 
+static inline UInt bufWriteBytes(UInt8 *buf, UInt8 *bytes, Int numBytes)
+{
+    Int i;
+    for (i = 0; i < numBytes; ++i)
+        buf[i] = bytes[i];
+    return numBytes;
+}
+
+static inline Void bufWriteFixedHeader(UInt8 *buf, UInt32 size, UInt8 idx)
+{
+    UInt8 *bufp = buf;
+    bufp += bufWriteBytes(bufp, Export_marker,
+                          Export_header[Export_HeaderFieldIndex_MARKER].size);
+    bufp += bufWriteUInt(bufp, size,
+                          Export_header[Export_HeaderFieldIndex_SIZE].size);
+    bufp += bufWriteUInt(bufp, idx,
+                          Export_header[Export_HeaderFieldIndex_IDX].size);
+    Assert_isTrue(bufp - buf <= Export_headerFixedSize, NULL);
+}
+
 static inline Void bufWriteVarHeader(UInt8 *buf)
 {
     UInt8 *bufp = buf + Export_headerFixedSize;
@@ -189,12 +209,18 @@ static Void initUDMA()
                           UDMA_ARB_4);
 }
 
-Void Export_setBufferPointer(UInt bufId, UInt8 *addr)
+Void Export_initBuffer(UInt bufId, UInt8 *addr)
 {
+    Export_ExportBuffer *buf;
+
     Assert_isTrue(bufId < module->expBuffers.length, NULL);
     Assert_isTrue(addr != NULL, NULL);
-    Log_write2(Export_LM_setBufferPointer, bufId, (IArg)addr);
-    module->expBuffers.elem[bufId].addr = addr;
+
+    Log_write2(Export_LM_initBuffer, bufId, (IArg)addr);
+
+    buf = &module->expBuffers.elem[bufId];
+    bufWriteFixedHeader(addr, buf->size, bufId);
+    buf->addr = addr;
 }
 
 Int Export_Module_startup(Int state)

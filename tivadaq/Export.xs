@@ -25,13 +25,6 @@ function module$meta$init()
             this.headerVarSize += this.header[i].size; 
         this.headerSize += this.header[i].size; 
     }
-
-    for (var i = 0; i < this.exportBuffers.length; ++i) {
-        var buf = this.exportBuffers[i];
-        bufWriteFixedHeader(buf.addr, i, buf.size);
-    }
-
-    //this.header[0] = {size: 3, fixed: true};
 }
 
 function module$use()
@@ -77,31 +70,4 @@ function addBuffer(size)
     this.exportBuffers.length += 1;
     this.exportBuffers[this.exportBuffers.length - 1] = buf;
     return this.exportBuffers.length - 1;
-}
-
-function bufWriteFixedHeader(buf, idx, size)
-{
-    var offset = 0;
-    offset += bufWriteBytes(buf, offset, this.MARKER);
-    offset += bufWriteUInt(buf, offset, size, header["marker"].size);
-    offset += bufWriteUInt(buf, offset, idx, header["index"].size);
-
-    if (offset > this.fixedHeaderSize)
-        throw "Internal error: fixed header data exceeded fixed header size";
-}
-
-function bufWriteBytes(buf, offset, bytes)
-{
-    for (var i = 0; i < numBytes; ++i)
-        buf[offset + i] = bytes[i];
-    return bytes.length;
-}
-
-function bufWriteUInt(buf, offset, n, numBytes)
-{
-    for (var i = 0; i < numBytes; ++i) {
-        buf[offset + i] = n & 0xff;
-        n >>= 8;
-    }
-    return numBytes;
 }

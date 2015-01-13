@@ -24,7 +24,7 @@ module Export {
     };
 
     // Length must match size in 'header' config below
-    metaonly config UInt8 MARKER[] = [0xf0, 0x0d, 0xca, 0xfe];
+    config UInt8 marker[] = [0xf0, 0x0d, 0xca, 0xfe];
 
     config HeaderField header[] = [
         { size: 4, fixed: true},  // marker
@@ -52,16 +52,16 @@ module Export {
     //    meta: id = addBuffer(size)
     //    target: setBufferPtr(id, addr)
     metaonly UInt addBuffer(UInt size);  // Returns buffer id
-    Void setBufferPointer(UInt bufId, UInt8 *addr);
+    Void initBuffer(UInt bufId, UInt8 *addr);
 
     Void processBuffers(UArg arg1, UArg arg2);
     Void exportBuffer(UInt id);
     Void exportAllBuffers();
     Void resetBufferSequenceNum();
 
-    config Log.Event LM_setBufferPointer = {
+    config Log.Event LM_initBuffer = {
         mask: Diags.INFO,
-        msg: "LM_setBufferPointer: id %u -> addr %p"
+        msg: "LM_initBuffer: id %u -> addr %p"
     };
     config Log.Event LM_initUART = {
         mask: Diags.INFO,
