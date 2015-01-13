@@ -84,7 +84,10 @@ Void Export_processBuffers(UArg arg1, UArg arg2)
             expBuffer = &module->expBuffers.elem[i];
             module->curExpBuffer = expBuffer;
 
-            Log_write2(Export_LM_transferStarted, i, (IArg)expBuffer->addr);
+            Log_write4(Export_LM_transferStarted, i,
+                       (IArg)expBuffer->addr,
+                       (IArg)((void *)uartPort->base + UART_O_DR),
+                       expBuffer->size);
 
             if (Export_txQueuedCallback)
                 Export_txQueuedCallback();

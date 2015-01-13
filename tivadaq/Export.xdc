@@ -85,7 +85,7 @@ module Export {
     };
     config Log.Event LM_transferStarted = {
         mask: Diags.USER1,
-        msg: "LM_transferStarted: id %u, addr %p"
+        msg: "LM_transferStarted: id %u, src %p -> dest %p, len %u"
     };
     config Log.Event LM_transferCompleted = {
         mask: Diags.USER1,
