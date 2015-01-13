@@ -51,18 +51,14 @@ function module$validate()
                        this, "NUM_BUFS_PER_SEQ");
 
     for (var adc = 0; adc < this.NUM_ADCS; ++adc) {
-        if (!(adc in this.daqConfig.adcs)) // ADC not enabled by user
-            continue;
-
         var adcConfig = this.daqConfig.adcs[adc];
-
         var triggerTimerNeeded = false;
 
         for (var seq = 0; seq < this.NUM_SEQS; ++seq) {
-            if  (!(seq in adcConfig.seqs)) // sequencer not enabled by user
-                continue;
-
             var seqConf = adcConfig.seqs[seq];
+
+            if (!seqConf.enabled)
+                continue;
 
             if (seqConf.enabled && !isPowerOf2(seqConf.samples.length))
                 this.$logError("Number of samples in a sequence must " +
