@@ -286,6 +286,7 @@ static Void initBuffers()
 
 Int Daq_Module_startup(Int state)
 {
+    Log_write0(Daq_LM_startup);
     /* Rely on uDMA init done as part of export module */
     initBuffers();
     initADC();

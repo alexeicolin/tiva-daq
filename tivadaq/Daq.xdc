@@ -82,6 +82,10 @@ module Daq {
     Void stop();
     Void trigger(Int adc, Int seq);
 
+    config Log.Event LM_startup = {
+        mask: Diags.INFO,
+        msg: "LM_startup: initializing Daq"
+    };
     config Log.Event LM_initBuffer = {
         mask: Diags.INFO,
         msg: "LM_initBuffer: adc.seq/buf %d.%d/%d, addr %p, payload %p, exp idx %u"
