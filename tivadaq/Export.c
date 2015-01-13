@@ -56,7 +56,6 @@ Void Export_processBuffers(UArg arg1, UArg arg2)
     if (!module->curExpBuffer) {
 
         /* Find first full buffer */
-        i = 0;
         for (i = 0; i < module->expBuffers.length; ++i)
             if (module->expBuffers.elem[i].full)
                 break;
