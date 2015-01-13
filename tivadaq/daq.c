@@ -77,7 +77,6 @@ Void onExportTxCompleted()
 
 Int main(Int argc, Char* argv[])
 {
-    Console_open();
     Leds_pulseLed(g_statusLed);
     Swi_post(startStopSwi);
     BIOS_start();
