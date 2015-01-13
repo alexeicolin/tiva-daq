@@ -64,7 +64,7 @@ module Export {
         Bool full;
     };
 
-    metaonly readonly config ExportBuffer exportBuffers[];
+    metaonly config ExportBuffer exportBuffers[];
 
     struct Module_State {
         ExportBuffer expBuffers[length];
