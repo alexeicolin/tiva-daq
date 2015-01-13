@@ -279,15 +279,14 @@ static Void toggleAdcTimers(Bool enable)
     Int adc, seq;
     const Daq_AdcState *adcState;
     const Daq_SeqState *seqState;
-    const Daq_TimerState *triggerTimer;
-    const GpTimer_Info *timerDev = GpTimer_getInfo(triggerTimer->timerDev);
+    const GpTimer_Info *timerDev;
 
     for (adc = 0; adc < Daq_NUM_ADCS; ++adc) {
         adcState = &module->daqState.adcs[adc];
         for (seq = 0; seq < Daq_NUM_SEQS; ++seq) {
             seqState = &adcState->seqs[seq];
             if (seqState->enabled && seqState->trigger == ADC_TRIGGER_TIMER) {
-                triggerTimer = &adcState->triggerTimer;
+                timerDev = GpTimer_getInfo(adcState->triggerTimer.timerDev);
                 if (enable)
                     TimerEnable(timerDev->base, timerDev->half);
                 else
