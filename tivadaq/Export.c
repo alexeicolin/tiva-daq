@@ -2,6 +2,7 @@
 #include <xdc/runtime/Assert.h>
 #include <xdc/runtime/Error.h>
 #include <xdc/runtime/Startup.h>
+#include <xdc/runtime/Log.h>
 #include <ti/sysbios/knl/Swi.h>
 
 #include <platforms/tiva/UartPort.h>
@@ -176,6 +177,7 @@ Void Export_setBufferPointer(UInt bufId, UInt8 *addr)
 {
     Assert_isTrue(bufId < module->expBuffers.length, NULL);
     Assert_isTrue(addr != NULL, NULL);
+    Log_write2(Export_LM_setBufferPointer, bufId, (IArg)addr);
     module->expBuffers.elem[bufId].addr = addr;
 }
 

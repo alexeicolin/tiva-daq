@@ -1,5 +1,8 @@
 package tivadaq;
 
+import xdc.runtime.Log;
+import xdc.runtime.Diags;
+
 import ti.sysbios.knl.Swi;
 import platforms.tiva.UartPort;
 
@@ -55,6 +58,11 @@ module Export {
     Void exportBuffer(UInt id);
     Void exportAllBuffers();
     Void resetBufferSequenceNum();
+
+    config Log.Event LM_setBufferPointer = {
+        mask: Diags.USER1,
+        msg: "LM_setBufferPointer: id %u -> addr %p"
+    };
 
   internal:
 

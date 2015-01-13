@@ -1,3 +1,5 @@
+var Log;
+var Diags;
 var Hwi;
 var Swi;
 var PlatformInfo;
@@ -5,6 +7,8 @@ var UartPort;
 
 function module$meta$init()
 {
+    Log = xdc.useModule('xdc.runtime.Log');
+    Diags = xdc.useModule('xdc.runtime.Diags');
     Hwi = xdc.useModule('ti.sysbios.hal.Hwi');
     Swi = xdc.useModule('ti.sysbios.knl.Swi');
     PlatformInfo = xdc.useModule('platforms.tiva.PlatformInfo');
