@@ -17,8 +17,6 @@ for each (var targ in Build.targets) {
     var srcs = [
         "Export.c",
         "Daq.c",
-        "Leds.c",
-        "Console.c",
     ];
     var lib = Pkg.addLibrary("lib/" + Pkg.name, targ)
     lib.addObjects(srcs, libAttrs);
