@@ -66,7 +66,7 @@ function module$static$init(state, mod)
     state.bufferSeqNum = 0;
 }
 
-function addBuffer(addr, size)
+function addBuffer(size)
 {
     // Addr is set in target-domain (unfortunately, no choice)
     var buf = {addr: null, size: size, full: false};
