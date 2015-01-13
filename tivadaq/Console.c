@@ -1,6 +1,7 @@
 #include <xdc/std.h>
 #include <xdc/runtime/System.h>
 #include <xdc/runtime/Assert.h>
+#include <xdc/runtime/Startup.h>
 #include <ti/drivers/UART.h>
 #include <ti/drivers/uart/UARTTiva.h>
 
@@ -88,4 +89,10 @@ Void Console_output(/* const */ Char *buf, UInt size)
 Void Console_flush()
 {
     System_flush();
+}
+
+Int Console_Module_startup(Int state)
+{
+    Console_open();
+    return Startup_DONE;
 }
