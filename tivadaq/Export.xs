@@ -50,8 +50,9 @@ function module$static$init(state, mod)
 {
     state.uartPort = UartPort.create(mod.uartPortIdx);
 
+    state.expBuffers.length = mod.exportBuffers.length;
     for (var i = 0; i < mod.exportBuffers.length; ++i)
-        state.exportBuffers.push(mod.exportBuffers[i]);
+        state.expBuffers[i] = mod.exportBuffers[i];
 
     var uartIntNum = PlatformInfo['INT_UART' + this.uartPortIdx];
     Hwi.create(uartIntNum, '&Export_onExportComplete');
