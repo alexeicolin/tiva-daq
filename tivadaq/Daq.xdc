@@ -115,10 +115,6 @@ module Daq {
      * This could be optimized to include into the target binary only the ones
      * actually configured to be used, but this would complicate things greatly
      * since the lookups are currently all by ADC/sequencer index.
-     *
-     * Hardware parameters, like base addresses could be declared here, but
-     * we populated the values in code leverages regularity in macro names from
-     * HwAttrs. This helps reduce repetative boiler-plate.
      */
 
     // Can't use '[length]' due to bug in XDC (see below)
