@@ -86,14 +86,13 @@ module Daq {
         mask: Diags.INFO,
         msg: "LM_initBuffer: adc.seq/buf %d.%d/%d, addr %p, payload %p, exp idx %u"
     };
-    config Log.Event LM_setupDMAADCTransfer = {
+    config Log.Event LM_acquisitionStarted = {
         mask: Diags.USER1,
-        msg: "LM_setupDMAADCTransfer: adc.seq/buf %d.%d/%d, src %p, dest %p, len %u"
+        msg: "LM_acquisitionStarted: adc.seq/buf %d.%d/%d, src %p, dest %p, len %u"
     };
-
-    config Log.Event LM_initBuffer = {
+    config Log.Event LM_acquisitionCompleted = {
         mask: Diags.USER1,
-        msg: "LM_initBuffer: adc.seq/buf %d.%d/%d, addr %p, payload %p, exp idx %u"
+        msg: "LM_acquisitionCompleted: adc.seq/buf %d.%d/%d"
     };
 
   internal:

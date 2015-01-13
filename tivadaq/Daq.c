@@ -53,7 +53,7 @@ static Void setupDMAADCTransfer(Int adc, Int seq, Int idx)
     // static assert NUM_BUFS_PER_SEQ == 2
     UInt32 select = idx ? UDMA_ALT_SELECT : UDMA_PRI_SELECT;
 
-    Log_write6(Daq_LM_setupDMAADCTransfer, adc, seq, idx,
+    Log_write6(Daq_LM_acquisitionStarted, adc, seq, idx,
                (IArg)seqDev->dataAddr, (IArg)seqState->payloadAddr[idx],
                seqState->numSamples);
 
@@ -78,6 +78,8 @@ static Void processBuffer(Int adc, Int seq, Int idx)
 {
     const Daq_AdcState *adcState = &module->daqState.adcs[adc];
     const Daq_SeqState *seqState = &adcState->seqs[seq];
+
+    Log_write3(Daq_LM_acquisitionCompleted, adc, seq, idx);
 
     /* Setup the next transfer into this buffer that was just filled */
     setupDMAADCTransfer(adc, seq, idx);
