@@ -2,8 +2,8 @@
 #include <xdc/runtime/Startup.h>
 #include <ti/drivers/GPIO.h>
 
-#include <platforms/tiva/GpioPort.h>
-#include <platforms/tiva/GpioPeriph.h>
+#include <platforms/tiva/hw/GpioPort.h>
+#include <platforms/tiva/hw/GpioPeriph.h>
 
 #include <stdint.h>
 #include <stdbool.h>

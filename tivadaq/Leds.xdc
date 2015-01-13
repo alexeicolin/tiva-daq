@@ -1,6 +1,6 @@
 package tivadaq;
 
-import platforms.tiva.GpioPort;
+import platforms.tiva.hw.GpioPort;
 
 @ModuleStartup
 module Leds {

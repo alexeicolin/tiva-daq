@@ -6,7 +6,7 @@ function module$meta$init()
 {
     Clock = xdc.useModule('ti.sysbios.knl.Clock');
     GPIO = xdc.useModule('ti.drivers.GPIO');
-    GpioPort = xdc.useModule('platforms.tiva.GpioPort');
+    GpioPort = xdc.useModule('platforms.tiva.hw.GpioPort');
 }
 
 function module$static$init(state, mod)
