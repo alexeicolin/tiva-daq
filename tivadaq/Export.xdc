@@ -92,6 +92,10 @@ module Export {
         mask: Diags.USER1,
         msg: "LM_transferCompleted: addr %p"
     };
+    config Log.Event LM_bufferContent = {
+        mask: Diags.USER2,
+        msg: "LM_expBufferContent: addr %p: %08x %08x %08x %08x %08x %08x %08x ..."
+    };
     config Log.Event LM_noFullBuffers = {
         mask: Diags.USER1,
         msg: "LM_noFullBuffers: processBuffers returns"

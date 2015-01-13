@@ -71,6 +71,7 @@ Void Export_processBuffers(UArg arg1, UArg arg2)
     Int i;
     Export_ExportBuffer *expBuffer;
     const UartPort_Info *uartPort = UartPort_getInfo(module->uartPort);
+    UInt32 *debugDataPtr;
 
     /* If not currently transfering, look for a full buffer to transfer */
     if (!module->curExpBuffer) {
@@ -93,6 +94,13 @@ Void Export_processBuffers(UArg arg1, UArg arg2)
                 Export_txQueuedCallback();
 
             bufWriteVarHeader(expBuffer->addr);
+
+            debugDataPtr = (UInt32*)expBuffer->addr;
+            Log_write8(Export_LM_bufferContent, (IArg)expBuffer->addr,
+                       (IArg)debugDataPtr[0],  (IArg)debugDataPtr[1],
+                       (IArg)debugDataPtr[2],  (IArg)debugDataPtr[3],
+                       (IArg)debugDataPtr[4],  (IArg)debugDataPtr[5],
+                       (IArg)debugDataPtr[6]);
 
             uDMAChannelTransferSet(
                uartPort->udmaChanTx | UDMA_PRI_SELECT,
