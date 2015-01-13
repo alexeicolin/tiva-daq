@@ -152,9 +152,11 @@ def save_as_csv(fin, out_name, seqs, start_seq_num=0):
         while True:
 
             skipped = False
+            eof = False
             while True: # keep searching for header in case corruption occurred
                 header_data = fin.read(Header.SIZE)
                 if header_data is None or len(header_data) == 0: # EOF
+                    eof = True
                     break
 
                 if len(header_data) != Header.SIZE:
@@ -171,6 +173,8 @@ def save_as_csv(fin, out_name, seqs, start_seq_num=0):
                 finally:
                     pos += Header.SIZE
 
+            if eof:
+                break # done
 
             # index in header counts double-buffer, but our seq map does not
             seq_idx = header.buf_idx / 2
