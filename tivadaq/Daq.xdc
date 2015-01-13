@@ -138,7 +138,7 @@ module Daq {
         UInt8 *payloadAddr[NUM_BUFS_PER_SEQ]; // optional, could recompute this
 
         UInt8 numSamples;
-        UInt8 exportBufIdx;
+        UInt8 exportBufIdx[NUM_BUFS_PER_SEQ]; // buf id's assigned by Export
     };
 
     struct TimerState {

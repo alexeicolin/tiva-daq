@@ -81,7 +81,7 @@ static Void processBuffer(Int adc, Int seq, Int idx)
 
     /* Setup the next transfer into this buffer that was just filled */
     setupDMAADCTransfer(adc, seq, idx);
-    Export_exportBuffer(seqState->exportBufIdx);
+    Export_exportBuffer(seqState->exportBufIdx[idx]);
 }
 
 Void onSampleTransferComplete(UArg arg)
@@ -268,8 +268,9 @@ static Void initBuffers()
                     Log_write6(Daq_LM_initBuffer, adc, seq, bufIdx,
                                (IArg)bufAddr,
                                (IArg)seqState->payloadAddr[bufIdx],
-                               seqState->exportBufIdx);
-                    Export_setBufferPointer(seqState->exportBufIdx, bufAddr);
+                               seqState->exportBufIdx[bufIdx]);
+                    Export_setBufferPointer(seqState->exportBufIdx[bufIdx],
+                                            bufAddr);
                 }
             }
         }

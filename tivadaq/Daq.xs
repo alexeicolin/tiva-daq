@@ -167,7 +167,7 @@ function module$static$init(state, mod)
                 seqState.numSamples =
                    (seqConf.bufSize - Export.headerSize) / this.SAMPLE_SIZE;
 
-                seqState.exportBufIdx = mod.exportBufIdxes[adc][seq][bufIdx];
+                seqState.exportBufIdx[bufIdx] = mod.exportBufIdxes[adc][seq][bufIdx];
 
                 var arbSize = seqConf.arbSize;
                 if (!arbSize)
