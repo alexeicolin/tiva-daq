@@ -200,10 +200,14 @@ def save_as_csv(fin, out_name, seqs, start_seq_num=0):
 
             sample_data = fin.read(header.buf_size - header.SIZE)
             if len(sample_data) != header.buf_size - header.SIZE:
-                raise ParseException("Failed to read sample data " + \
-                        "(pos " + ("0x%x" % pos) + "): got " + \
-                        str(len(sample_data)) + " bytes (requested " + \
-                        str(header.buf_size - header.SIZE) + ")") 
+                if len(fin.read(1)) == 0: # hit EOF?
+                    print "done"
+                    break # ignore last incomplete packet
+                else:
+                    raise ParseException("Failed to read sample data " + \
+                            "(pos " + ("0x%x" % pos) + "): got " + \
+                            str(len(sample_data)) + " bytes (requested " + \
+                            str(header.buf_size - header.SIZE) + ")")
             pos += header.buf_size - header.SIZE
 
             seq = seqs[seq_idx]
