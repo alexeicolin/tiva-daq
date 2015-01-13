@@ -1,5 +1,6 @@
 var Log;
 var Diags;
+var BIOS;
 var Hwi;
 var Swi;
 var PlatformInfo;
@@ -9,6 +10,7 @@ function module$meta$init()
 {
     Log = xdc.useModule('xdc.runtime.Log');
     Diags = xdc.useModule('xdc.runtime.Diags');
+    BIOS = xdc.useModule('ti.sysbios.BIOS');
     Hwi = xdc.useModule('ti.sysbios.hal.Hwi');
     Swi = xdc.useModule('ti.sysbios.knl.Swi');
     PlatformInfo = xdc.useModule('platforms.tiva.PlatformInfo');
@@ -29,10 +31,20 @@ function module$meta$init()
 
 function module$use()
 {
+    this.systemClockHz = BIOS.getCpuFreqMeta();
 }
 
 function module$validate()
 {
+    if (this.systemClockHz == undefined)
+        this.$logError("System clock freq not set", this, "systemClockHz");
+
+    if (this.systemClockHz.lo == 0 || this.systemClockHz.hi != 0)
+        this.$logError("Clock freq (" +
+                       this.systemClockHz.hi + ":" + this.systemClockHz.lo + ") " +
+                       "outside the supported range: 0:0xffffffff",
+                       this, "systemClockHz");
+
     for (var i = 0; i < this.exportBuffers.length; ++i) {
         if (this.exportBuffers[i].size > PlatformInfo.MAX_UDMA_TRANSFER_SIZE) {
             this.$logError("Buffer size (" + this.exportBuffers[i].size + ") " +

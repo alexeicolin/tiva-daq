@@ -2,6 +2,7 @@ package tivadaq;
 
 import xdc.runtime.Log;
 import xdc.runtime.Diags;
+import xdc.runtime.Types;
 
 import ti.sysbios.knl.Swi;
 import platforms.tiva.UartPort;
@@ -65,7 +66,7 @@ module Export {
     };
     config Log.Event LM_initUART = {
         mask: Diags.INFO,
-        msg: "LM_initUART: (base/periph) uart %p/0x%08x gpio %p/0x%08x, tx pin/assign 0x%02x/0x%08x, baud %u"
+        msg: "LM_initUART: (base/periph) uart %p/0x%08x gpio %p/0x%08x, tx pin/assign 0x%02x/0x%08x, baud %u, sysclk %u hz"
     };
     config Log.Event LM_initUDMA = {
         mask: Diags.INFO,
@@ -101,6 +102,8 @@ module Export {
     };
 
   internal:
+
+    config Types.FreqHz systemClockHz; // taken from BIOS
 
     struct ExportBuffer {
         UInt8 *addr;

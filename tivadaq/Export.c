@@ -165,9 +165,9 @@ static Void initUART()
     const GpioPeriph_Info *rxPeriph = GpioPeriph_getInfo(rxPin->periph);
     const GpioPeriph_Info *txPeriph = GpioPeriph_getInfo(txPin->periph);
 
-    Log_write7(Export_LM_initUART, (IArg)uartPort->base, uartPort->periph,
+    Log_write8(Export_LM_initUART, (IArg)uartPort->base, uartPort->periph,
                (IArg)txPeriph->base, txPeriph->periph, txPin->pin,
-               uartPort->pinAssignTx, Export_uartBaudRate);
+               uartPort->pinAssignTx, Export_uartBaudRate, Export_systemClockHz.lo);
 
     SysCtlPeripheralEnable(rxPeriph->periph);
     SysCtlPeripheralEnable(txPeriph->periph);
@@ -176,7 +176,8 @@ static Void initUART()
     GPIOPinConfigure(uartPort->pinAssignTx);
     GPIOPinTypeUART(rxPeriph->base, rxPin->pin);
     GPIOPinTypeUART(txPeriph->base, txPin->pin);
-    UARTConfigSetExpClk(uartPort->base, SysCtlClockGet(), Export_uartBaudRate,
+
+    UARTConfigSetExpClk(uartPort->base, Export_systemClockHz.lo, Export_uartBaudRate,
                         UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
                         UART_CONFIG_PAR_NONE);
 }
