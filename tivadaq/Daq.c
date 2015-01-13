@@ -269,8 +269,7 @@ static Void initBuffers()
                                (IArg)bufAddr,
                                (IArg)seqState->payloadAddr[bufIdx],
                                seqState->exportBufIdx[bufIdx]);
-                    Export_setBufferPointer(seqState->exportBufIdx[bufIdx],
-                                            bufAddr);
+                    Export_initBuffer(seqState->exportBufIdx[bufIdx], bufAddr);
                 }
             }
         }
