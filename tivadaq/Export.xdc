@@ -69,7 +69,7 @@ module Export {
     };
     config Log.Event LM_initUDMA = {
         mask: Diags.INFO,
-        msg: "LM_initUDMA: uart base %p udma chan 0x08%x"
+        msg: "LM_initUDMA: uart base %p udma chan %u"
     };
     config Log.Event LM_exportBuffer = {
         mask: Diags.USER1,
