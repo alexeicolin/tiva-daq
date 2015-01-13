@@ -163,6 +163,11 @@ module Daq {
     metaonly readonly config UInt32 MIN_SAMPLES_PER_SEC = 10;
     metaonly readonly config UInt32 MAX_SAMPLES_PER_SEC = 10000;
 
+    // Internal map (adc, seq, bufIdx) -> bufId that temporarily holds the
+    // buffer ids assigned by the Export module, util they are transfered
+    // to the the adcState->seqState->exportBufIdx upon static$init.
+    metaonly config UInt32 exportBufIdxes[NUM_ADCS][NUM_SEQS][NUM_BUFS_PER_SEQ];
+
     struct Module_State {
         DaqState daqState;
 

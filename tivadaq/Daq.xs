@@ -23,6 +23,20 @@ function module$meta$init()
 
 function module$use()
 {
+    // Add buffers to Export module and save the assigned IDs
+    for (var adc = 0; adc < this.NUM_ADCS; ++adc) {
+        var adcConfig = this.daqConfig.adcs[adc];
+        for (var seq = 0; seq < this.NUM_SEQS; ++seq) {
+            var seqConf = adcConfig.seqs[seq];
+            for (var bufIdx = 0; bufIdx < this.NUM_BUFS_PER_SEQ; ++bufIdx) {
+                // The meta-domain part of adding an export buffer
+                var bufId = 0; // ideally, this should be an invalid index
+                if (seqConf.enabled)
+                    bufId = Export.addBuffer(seqConf.bufSize);
+                this.exportBufIdxes[adc][seq][bufIdx] = bufId;
+            }
+        }
+    }
 }
 
 function module$validate()
@@ -153,8 +167,7 @@ function module$static$init(state, mod)
                 seqState.numSamples =
                    (seqConf.bufSize - Export.headerSize) / this.SAMPLE_SIZE;
 
-                // The meta-domain part of adding an export buffer
-                seqState.exportBufIdx = Export.addBuffer(seqConf.bufSize);
+                seqState.exportBufIdx = mod.exportBufIdxes[adc][seq][bufIdx];
 
                 var arbSize = seqConf.arbSize;
                 if (!arbSize)
