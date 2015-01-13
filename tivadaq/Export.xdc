@@ -63,9 +63,25 @@ module Export {
         mask: Diags.INFO,
         msg: "LM_setBufferPointer: id %u -> addr %p"
     };
+    config Log.Event LM_initUART = {
+        mask: Diags.INFO,
+        msg: "LM_initUART: (base/periph) uart %p/0x%08x gpio %p/0x%08x, tx pin/assign 0x%02x/0x%08x, baud %u"
+    };
+    config Log.Event LM_initUDMA = {
+        mask: Diags.INFO,
+        msg: "LM_initUDMA: uart base %p udma chan 0x08%x"
+    };
     config Log.Event LM_exportBuffer = {
         mask: Diags.USER1,
         msg: "LM_exportBuffer: id %u, addr %p"
+    };
+    config Log.Event LM_exportAllBuffers = {
+        mask: Diags.USER1,
+        msg: "LM_exportAllBuffers"
+    };
+    config Log.Event LM_resetBufferSequenceNum = {
+        mask: Diags.USER1,
+        msg: "LM_resetBufferSequenceNum"
     };
     config Log.Event LM_transferStarted = {
         mask: Diags.USER1,

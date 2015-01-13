@@ -123,12 +123,14 @@ Void Export_exportBuffer(UInt idx)
 Void Export_exportAllBuffers()
 {
     UInt8 i;
+    Log_write0(Export_LM_exportAllBuffers);
     for (i = 0; i < module->expBuffers.length; ++i)
         Export_exportBuffer(i);
 }
 
 Void Export_resetBufferSequenceNum()
 {
+    Log_write0(Export_LM_resetBufferSequenceNum);
     module->bufferSeqNum = 0;
 }
 
@@ -139,6 +141,10 @@ static Void initUART()
     const GpioPort_Info *txPin = GpioPort_getInfo(uartPort->txPin);
     const GpioPeriph_Info *rxPeriph = GpioPeriph_getInfo(rxPin->periph);
     const GpioPeriph_Info *txPeriph = GpioPeriph_getInfo(txPin->periph);
+
+    Log_write7(Export_LM_initUART, (IArg)uartPort->base, uartPort->periph,
+               (IArg)txPeriph->base, txPeriph->periph, txPin->pin,
+               uartPort->pinAssignTx, Export_uartBaudRate);
 
     SysCtlPeripheralEnable(rxPeriph->periph);
     SysCtlPeripheralEnable(txPeriph->periph);
@@ -155,6 +161,8 @@ static Void initUART()
 static Void initUDMA()
 {
     const UartPort_Info *uartPort = UartPort_getInfo(module->uartPort);
+
+    Log_write2(Export_LM_initUDMA, uartPort->base, uartPort->udmaChanTx);
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
     IntEnable(INT_UDMAERR);
