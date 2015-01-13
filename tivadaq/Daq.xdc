@@ -3,11 +3,11 @@ package tivadaq;
 import xdc.runtime.Log;
 import xdc.runtime.Diags;
 
-import platforms.tiva.GpioPort;
-import platforms.tiva.Adc;
-import platforms.tiva.AdcSeq;
-import platforms.tiva.AdcChan;
-import platforms.tiva.GpTimer;
+import platforms.tiva.hw.GpioPort;
+import platforms.tiva.hw.Adc;
+import platforms.tiva.hw.AdcSeq;
+import platforms.tiva.hw.AdcChan;
+import platforms.tiva.hw.GpTimer;
 
 @ModuleStartup
 module Daq {

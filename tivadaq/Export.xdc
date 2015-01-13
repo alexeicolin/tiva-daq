@@ -5,7 +5,7 @@ import xdc.runtime.Diags;
 import xdc.runtime.Types;
 
 import ti.sysbios.knl.Swi;
-import platforms.tiva.UartPort;
+import platforms.tiva.hw.UartPort;
 
 @ModuleStartup
 module Export {

@@ -4,12 +4,12 @@
 #include <xdc/runtime/Startup.h>
 #include <xdc/runtime/Log.h>
 
-#include <platforms/tiva/GpioPeriph.h>
-#include <platforms/tiva/GpioPort.h>
-#include <platforms/tiva/Adc.h>
-#include <platforms/tiva/AdcSeq.h>
-#include <platforms/tiva/AdcChan.h>
-#include <platforms/tiva/GpTimer.h>
+#include <platforms/tiva/hw/GpioPeriph.h>
+#include <platforms/tiva/hw/GpioPort.h>
+#include <platforms/tiva/hw/Adc.h>
+#include <platforms/tiva/hw/AdcSeq.h>
+#include <platforms/tiva/hw/AdcChan.h>
+#include <platforms/tiva/hw/GpTimer.h>
 
 #include <Export.h>
 

@@ -16,12 +16,12 @@ function module$meta$init()
     Diags = xdc.useModule('xdc.runtime.Diags');
     BIOS = xdc.useModule('ti.sysbios.BIOS');
     Hwi = xdc.useModule('ti.sysbios.hal.Hwi');
-    PlatformInfo = xdc.useModule('platforms.tiva.PlatformInfo');
-    GpioPort = xdc.useModule('platforms.tiva.GpioPort');
-    Adc = xdc.useModule('platforms.tiva.Adc');
-    AdcSeq = xdc.useModule('platforms.tiva.AdcSeq');
-    AdcChan = xdc.useModule('platforms.tiva.AdcChan');
-    GpTimer = xdc.useModule('platforms.tiva.GpTimer');
+    PlatformInfo = xdc.useModule('platforms.tiva.hw.PlatformInfo');
+    GpioPort = xdc.useModule('platforms.tiva.hw.GpioPort');
+    Adc = xdc.useModule('platforms.tiva.hw.Adc');
+    AdcSeq = xdc.useModule('platforms.tiva.hw.AdcSeq');
+    AdcChan = xdc.useModule('platforms.tiva.hw.AdcChan');
+    GpTimer = xdc.useModule('platforms.tiva.hw.GpTimer');
     Export = xdc.useModule('tivadaq.Export');
 }
 
