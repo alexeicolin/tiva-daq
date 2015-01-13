@@ -6,6 +6,7 @@ module Console {
     Void open();
     Void close();
     Void output(/* const */ Char *buf, UInt size);
+    Void flush();
 
   internal:
 

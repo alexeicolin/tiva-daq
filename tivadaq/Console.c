@@ -1,4 +1,5 @@
 #include <xdc/std.h>
+#include <xdc/runtime/System.h>
 #include <xdc/runtime/Assert.h>
 #include <ti/drivers/UART.h>
 #include <ti/drivers/uart/UARTTiva.h>
@@ -82,4 +83,9 @@ Void Console_close()
 Void Console_output(/* const */ Char *buf, UInt size)
 {
     UART_writePolling((UART_Handle)module->uart, buf, size);
+}
+
+Void Console_flush()
+{
+    System_flush();
 }
