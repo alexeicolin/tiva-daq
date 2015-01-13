@@ -1,6 +1,6 @@
 package tivadaq;
 
-import platforms.tiva.UartPort;
+import platforms.tiva.hw.UartPort;
 
 @ModuleStartup
 module Console {

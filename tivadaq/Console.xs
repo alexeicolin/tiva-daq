@@ -5,7 +5,7 @@ var SysMin;
 function module$meta$init()
 {
     UART = xdc.useModule('ti.drivers.UART');
-    UartPort = xdc.useModule('platforms.tiva.UartPort');
+    UartPort = xdc.useModule('platforms.tiva.hw.UartPort');
 
     SysMin = xdc.useModule('xdc.runtime.SysMin');
 
