@@ -88,7 +88,7 @@ module Daq {
     };
     config Log.Event LM_acquisitionStarted = {
         mask: Diags.USER1,
-        msg: "LM_acquisitionStarted: adc.seq/buf %d.%d/%d, src %p, dest %p, len %u"
+        msg: "LM_acquisitionStarted: adc.seq/buf %d.%d/%d, src %p -> dest %p, len %u"
     };
     config Log.Event LM_acquisitionCompleted = {
         mask: Diags.USER1,
