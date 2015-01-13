@@ -78,8 +78,14 @@ static Void processBuffer(Int adc, Int seq, Int idx)
 {
     const Daq_AdcState *adcState = &module->daqState.adcs[adc];
     const Daq_SeqState *seqState = &adcState->seqs[seq];
+    UInt32 *debugDataPtr = (UInt32 *)seqState->payloadAddr[idx];
 
     Log_write3(Daq_LM_acquisitionCompleted, adc, seq, idx);
+    Log_write8(Daq_LM_bufferContent, (IArg)seqState->payloadAddr[idx],
+               (IArg)debugDataPtr[0],  (IArg)debugDataPtr[1],
+               (IArg)debugDataPtr[2],  (IArg)debugDataPtr[3],
+               (IArg)debugDataPtr[4],  (IArg)debugDataPtr[5],
+               (IArg)debugDataPtr[6]);
 
     /* Setup the next transfer into this buffer that was just filled */
     setupDMAADCTransfer(adc, seq, idx);

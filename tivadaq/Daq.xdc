@@ -94,6 +94,10 @@ module Daq {
         mask: Diags.USER1,
         msg: "LM_acquisitionCompleted: adc.seq/buf %d.%d/%d"
     };
+    config Log.Event LM_bufferContent = {
+        mask: Diags.USER2,
+        msg: "LM_adcBufferContent: addr %p: %08x %08x %08x %08x %08x %08x %08x ..."
+    };
 
   internal:
 
