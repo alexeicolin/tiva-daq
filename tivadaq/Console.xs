@@ -7,7 +7,7 @@ function module$meta$init()
     UartPort = xdc.useModule('platforms.tiva.UartPort');
 
     var SysMin = xdc.useModule('xdc.runtime.SysMin');
-    SysMin.bufSize = 0x400;
+    SysMin.bufSize = 4096;
     SysMin.outputFxn = '&tivadaq_Console_output';
 
     var System = xdc.useModule('xdc.runtime.System');
