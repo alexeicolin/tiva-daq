@@ -65,6 +65,8 @@ Void Export_processBuffers(UArg arg1, UArg arg2)
             expBuffer = &module->expBuffers.elem[i];
             module->curExpBuffer = expBuffer;
 
+            Log_write2(Export_LM_transferStarted, i, (IArg)expBuffer->addr);
+
             if (Export_txQueuedCallback)
                 Export_txQueuedCallback();
 
@@ -78,7 +80,11 @@ Void Export_processBuffers(UArg arg1, UArg arg2)
                expBuffer->size);
 
             uDMAChannelEnable(uartPort->udmaChanTx);
+        } else {
+            Log_write0(Export_LM_noFullBuffers);
         }
+    } else {
+        Log_write0(Export_LM_transferInProgress);
     }
 }
 
@@ -95,6 +101,8 @@ Void Export_onExportComplete(UArg arg)
 
     Assert_isTrue(module->curExpBuffer != NULL, NULL);
 
+    Log_write1(Export_LM_transferCompleted, (IArg)module->curExpBuffer->addr);
+
     module->curExpBuffer->full = FALSE;
     module->curExpBuffer = NULL;
 
@@ -108,6 +116,7 @@ Void Export_exportBuffer(UInt idx)
 {
     Assert_isTrue(idx < module->expBuffers.length, NULL);
     Assert_isTrue(!module->expBuffers.elem[idx].full, NULL);
+    Log_write2(Export_LM_exportBuffer, idx, (IArg)module->expBuffers.elem[idx].addr);
     module->expBuffers.elem[idx].full = TRUE;
     Swi_post(module->exportBuffersSwi);
 }

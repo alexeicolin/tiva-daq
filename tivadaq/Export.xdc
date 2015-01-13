@@ -60,8 +60,28 @@ module Export {
     Void resetBufferSequenceNum();
 
     config Log.Event LM_setBufferPointer = {
-        mask: Diags.USER1,
+        mask: Diags.INFO,
         msg: "LM_setBufferPointer: id %u -> addr %p"
+    };
+    config Log.Event LM_exportBuffer = {
+        mask: Diags.USER1,
+        msg: "LM_exportBuffer: id %u, addr %p"
+    };
+    config Log.Event LM_transferStarted = {
+        mask: Diags.USER1,
+        msg: "LM_transferStarted: id %u, addr %p"
+    };
+    config Log.Event LM_transferCompleted = {
+        mask: Diags.USER1,
+        msg: "LM_transferCompleted: addr %p"
+    };
+    config Log.Event LM_noFullBuffers = {
+        mask: Diags.USER1,
+        msg: "LM_noFullBuffers: processBuffers returns"
+    };
+    config Log.Event LM_transferInProgress = {
+        mask: Diags.USER1,
+        msg: "LM_transferInProgress: processBuffers returns"
     };
 
   internal:
