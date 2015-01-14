@@ -78,6 +78,9 @@ module Daq {
 
     metaonly config DaqConfig daqConfig;
 
+    // Path to a JSON file with the config object (alternative to daqConfig)
+    metaonly config String jsonConfigPath;
+
     Void start();
     Void stop();
     Void trigger(Int adc, Int seq);

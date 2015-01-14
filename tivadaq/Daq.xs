@@ -25,8 +25,62 @@ function module$meta$init()
     Export = xdc.useModule('tivadaq.Export');
 }
 
+function timerHalfFromString(mod, str)
+{
+    if (str == 'A') return mod.TimerHalf_A;
+    if (str == 'B') return mod.TimerHalf_B;
+    throw "Unrecognized timer half value: '" + str + "'";
+}
+
+function triggerFromString(mod, str)
+{
+    if (str == "timer") return mod.AdcTrigger_TIMER;
+    if (str == "processor") return mod.AdcTrigger_PROCESSOR;
+    throw "Unrecognized trigger value: '" + str + "'";
+}
+
+function sampleFromString(mod, str)
+{
+    return mod['AdcInChan_' + str];
+}
+
+function configFromObject(mod, daqConfigObj)
+{
+    for (var adc in daqConfigObj.adcs) {
+        var adcConfigObj = daqConfigObj.adcs[adc]; // adc is a key
+        var adcConfig = mod.daqConfig.adcs[adc]; // adc is an index
+
+        adcConfig.samplesPerSec = adcConfigObj.samplesPerSec;
+        adcConfig.hwAvgFactor = adcConfigObj.hwAvgFactor;
+        if (adcConfigObj.triggerTimer) {
+            adcConfig.triggerTimer = {
+                idx: adcConfigObj.triggerTimer.idx,
+                half: timerHalfFromString(mod, adcConfigObj.triggerTimer.half),
+            }
+        }
+
+        for (var seq in adcConfigObj.seqs) {
+            var seqConfigObj = adcConfigObj.seqs[seq]; // seq is a key
+            var seqConfig = adcConfig.seqs[seq]; // seq is an index
+
+            seqConfig.enabled = true; // all *listed* seqs are enabled
+            seqConfig.priority = seqConfigObj.priority;
+            seqConfig.trigger = triggerFromString(mod, seqConfigObj.trigger);
+            seqConfig.bufSize = seqConfigObj.bufSize;
+            seqConfig.samples.length = seqConfigObj.samples.length;
+            for (var j = 0; j < seqConfigObj.samples.length; ++j)
+                seqConfig.samples[j] = sampleFromString(mod, seqConfigObj.samples[j]);
+        }
+    }
+}
+
 function module$use()
 {
+    if (this.jsonConfigPath) {
+        var daqConfigObj = loadJson(this.jsonConfigPath);
+        configFromObject(this, daqConfigObj);
+    }
+
     // Add buffers to Export module and save the assigned IDs
     for (var adc = 0; adc < this.NUM_ADCS; ++adc) {
         var adcConfig = this.daqConfig.adcs[adc];
@@ -244,3 +298,11 @@ function adcTriggerFromEnum(mod, triggerEnum)
     throw "Unsupported trigger enum value: " + triggerEnum;
 };
 
+function loadJson(path)
+{
+    var jsonFile = new java.io.BufferedReader(java.io.FileReader(path));
+    var content = "_obj = "; // without assignment eval doesn't return the obj
+    while ((line = jsonFile.readLine()) != null)
+        content += line + "\n";
+    return eval(content);
+}
