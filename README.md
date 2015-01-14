@@ -50,6 +50,8 @@ Example usage outline:
             }
         }
 
+    2. Configure application (UART ports, baud rate, logging, etc.) in `daq.cfg`.
+
     2. Build and flash the target application (see section below).
 
     3. Setup data recording on the host. The following assumes a UART->USB
