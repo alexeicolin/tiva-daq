@@ -1,0 +1,28 @@
+{
+    adcs: {
+        0: {
+            triggerTimer: { idx: 1, half: 'A' },
+            samplesPerSec: 10,
+            hwAvgFactor: 16,
+            seqs: {
+                0: {
+                    priority: 0,
+                    trigger: 'timer',
+                    bufSize: 512,
+                    samples: [ 'A0', 'A1', 'A2', 'A3' ],
+                },
+            },
+        },
+        1: {
+            hwAvgFactor: 1,
+            seqs: {
+                3: {
+                    priority: 1,
+                    trigger: 'processor',
+                    bufSize: 64,
+                    samples: [ 'TS' ],
+                },
+            }
+        }
+    }
+}
