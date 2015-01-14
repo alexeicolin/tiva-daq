@@ -151,7 +151,6 @@ def seqs_from_daq_config(path):
         seqs[int(adc_idx)] = {}
         for seq_idx in adc_config["seqs"].keys():
             seq_config = adc_config["seqs"][seq_idx]
-            seq_name = adc_idx + "-" + seq_idx # TODO: support custom names
             chans = []
             for chan_idx, chan_config in enumerate(seq_config["samples"]):
                 chan_obj_keys = chan_config.keys()
@@ -161,7 +160,7 @@ def seqs_from_daq_config(path):
                 chan_name = chan_obj_keys[0]
                 chan_type = chan_config[chan_name]
                 chans.append(channel_from_string(chan_name, chan_type))
-            seqs[int(adc_idx)][int(seq_idx)] = Sequence(seq_name, chans)
+            seqs[int(adc_idx)][int(seq_idx)] = Sequence(seq_config["name"], chans)
 
     return seqs
 
