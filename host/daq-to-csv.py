@@ -131,14 +131,14 @@ class ParseException(Exception):
 class ConfigException(Exception):
     pass
 
-# TODO: support channel names
-def channel_from_string(s):
-    if s[0] == "A":
-        return SingleChannel(s)
-    elif s == "TS":
-        return TempChannel(s)
+def channel_from_string(name, chan_type):
+    if chan_type[0] == "A":
+        return SingleChannel(name)
+    elif chan_type == "TS":
+        return TempChannel(name)
     else:
-        raise ConfigException("Unrecognized channel type: " + s)
+        raise ConfigException("Unrecognized channel type for channel " + \
+                              "'" + name + "': " + chan_type)
 
 def seqs_from_daq_config(path):
     """Build (adc,seq)->Sequence map from a JSON object in the given file"""
@@ -151,11 +151,17 @@ def seqs_from_daq_config(path):
         seqs[int(adc_idx)] = {}
         for seq_idx in adc_config["seqs"].keys():
             seq_config = adc_config["seqs"][seq_idx]
-            name = adc_idx + "-" + seq_idx # TODO: support custom names
+            seq_name = adc_idx + "-" + seq_idx # TODO: support custom names
             chans = []
-            for chan_config in seq_config["samples"]:
-                chans.append(channel_from_string(chan_config))
-            seqs[int(adc_idx)][int(seq_idx)] = Sequence(name, chans)
+            for chan_idx, chan_config in enumerate(seq_config["samples"]):
+                chan_obj_keys = chan_config.keys()
+                if len(chan_obj_keys) < 1:
+                    raise ConfigException("Empty channel config for adc.seq.chan " + \
+                            ".".join(map(str, (adc_idx, seq_idx, chan_idx))))
+                chan_name = chan_obj_keys[0]
+                chan_type = chan_config[chan_name]
+                chans.append(channel_from_string(chan_name, chan_type))
+            seqs[int(adc_idx)][int(seq_idx)] = Sequence(seq_name, chans)
 
     return seqs
 
