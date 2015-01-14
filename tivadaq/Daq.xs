@@ -91,10 +91,12 @@ function module$use()
             var seqConf = adcConfig.seqs[seq];
             for (var bufIdx = 0; bufIdx < this.NUM_BUFS_PER_SEQ; ++bufIdx) {
                 // The meta-domain part of adding an export buffer
-                var bufId = 0; // ideally, this should be an invalid index
-                if (seqConf.enabled)
-                    bufId = Export.addBuffer(seqConf.bufSize);
-                this.exportBufIdxes[adc][seq][bufIdx] = bufId;
+                var expBufIdx = 0; // ideally, this should be an invalid index
+                if (seqConf.enabled) {
+                    var bufId = (adc << 4) | seq; // for use by parser on host
+                    expBufIdx = Export.addBuffer(bufId, seqConf.bufSize);
+                }
+                this.exportBufIdxes[adc][seq][bufIdx] = expBufIdx;
             }
         }
     }
