@@ -9,13 +9,13 @@ import numpy as np
 import json
 
 parser = argparse.ArgumentParser(description=\
-        'Convert binary trace from ADC to CSV')
+        'Convert binary trace from DAQ to a set of CSV files')
 parser.add_argument('daq_config', \
         help="path to daq config in JSON format")
-parser.add_argument('trace_file', \
-        help="binary trace file from ADC ('-' for stdin)")
-parser.add_argument('out', \
-        help='name prefix for output files')
+parser.add_argument('daq_data', \
+        help="path to binary data file from the DAQ UART ('-' for stdin)")
+parser.add_argument('out_prefix', \
+        help='prefix for naming output files ("<prefix>.<seq_name>.csv")')
 parser.add_argument('-s', '--start-seq-num', type=int, default=0, \
         help='packet sequence numbers start at this value')
 args = parser.parse_args()
@@ -161,18 +161,18 @@ def seqs_from_daq_config(path):
 
 # MAIN
 
-if args.trace_file == '-':
+if args.daq_data == '-':
     fin = sys.stdin
 else:
-    fin = open(args.trace_file, 'r')
+    fin = open(args.daq_data, 'r')
 
-seqs = seqs_from_daq_config(daq_config_file)
+seqs = seqs_from_daq_config(args.daq_config)
 
 # Open an output file per sequence and write the column header into each
 fout = {}
 for adc_idx in seqs.keys():
     for seq in seqs[adc_idx].values():
-        fout_name = out_name + '.' + seq.name + '.csv'
+        fout_name = args.out_prefix + '.' + seq.name + '.csv'
         fout[seq] = open(fout_name, 'w')
 
         # Write CSV header for the sequence
@@ -199,7 +199,7 @@ def sigint_handler(sig, frame):
         sys.exit(0)
 signal.signal(signal.SIGINT, sigint_handler)
 
-cur_seq_num = start_seq_num
+cur_seq_num = args.start_seq_num
 pos = 0
 
 try:
