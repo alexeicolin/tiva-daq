@@ -1,6 +1,7 @@
 import signal
 import binascii
 import numpy as np
+import json
 
 def bytes_to_int(byte_array):
     """Return integer value from little-endian byte array"""
@@ -38,9 +39,8 @@ class TempChannel(Channel):
         return 147.5 - ((75.0 * (self.VREFP - self.VREFN) * sample) / 4096)
 
 class Sequence:
-    def __init__(self, name, samples_per_sec, channels):
+    def __init__(self, name, channels):
         self.name = name
-        self.samples_per_sec = samples_per_sec
         self.channels = channels
 
     def parse_samples(self, header, sample_data):
@@ -69,10 +69,10 @@ class Header:
 
     MARKER_SIZE = 4
     SIZE_SIZE   = 2
-    IDX_SIZE    = 1
+    USER_ID_SIZE = 1
     SEQ_SIZE    = 1
 
-    SIZE = MARKER_SIZE + SIZE_SIZE + IDX_SIZE + SEQ_SIZE
+    SIZE = MARKER_SIZE + SIZE_SIZE + USER_ID_SIZE + SEQ_SIZE
 
     MAX_BUF_SIZE = 1024 # constained by UDMA transfer size
     SAMPLE_SIZE = 2 # bytes
@@ -97,9 +97,9 @@ class Header:
         self.buf_size = buf_size
         pos += self.SIZE_SIZE
 
-        buf_idx = data[pos : pos + self.IDX_SIZE]
-        self.buf_idx = bytes_to_int(bytearray(buf_idx))
-        pos += self.IDX_SIZE
+        buf_user_id = data[pos : pos + self.USER_ID_SIZE]
+        self.buf_user_id = bytes_to_int(bytearray(buf_user_id))
+        pos += self.USER_ID_SIZE
 
         seq_num = data[pos : pos + self.SEQ_SIZE]
         self.seq_num = bytes_to_int(bytearray(seq_num))
@@ -111,27 +111,61 @@ class Header:
 
 class ParseException(Exception):
     pass
+class ConfigException(Exception):
+    pass
 
-def save_as_csv(fin, out_name, seqs, start_seq_num=0):
+# TODO: support channel names
+def channel_from_string(s):
+    if s[0] == "A":
+        return SingleChannel(s)
+    elif s == "TS":
+        return TempChannel(s)
+    else:
+        raise ConfigException("Unrecognized channel type: " + s)
+
+def seqs_from_daq_config(path):
+    """Build (adc,seq)->Sequence map from a JSON object in the given file"""
+
+    daq_config_obj = json.load(open(path))
+
+    seqs = {}
+    for adc_idx in daq_config_obj["adcs"].keys():
+        adc_config = daq_config_obj["adcs"][adc_idx]
+        seqs[int(adc_idx)] = {}
+        for seq_idx in adc_config["seqs"].keys():
+            seq_config = adc_config["seqs"][seq_idx]
+            name = adc_idx + "-" + seq_idx # TODO: support custom names
+            chans = []
+            for chan_config in seq_config["samples"]:
+                chans.append(channel_from_string(chan_config))
+            seqs[int(adc_idx)][int(seq_idx)] = Sequence(name, chans)
+
+    return seqs
+
+def save_as_csv(fin, out_name, daq_config_file, start_seq_num=0):
     """Read data stream from fin and save it to a set of CSV files"""
+
+    seqs = seqs_from_daq_config(daq_config_file)
 
     # Open an output file per sequence and write the column header into each
     fout = {}
-    for seq in seqs.values():
-        fout_name = out_name + '.' + seq.name + '.csv'
-        fout[seq] = open(fout_name, 'w')
+    for adc_idx in seqs.keys():
+        for seq in seqs[adc_idx].values():
+            fout_name = out_name + '.' + seq.name + '.csv'
+            fout[seq] = open(fout_name, 'w')
 
-        # Write CSV header for the sequence
-        for chan_i in range(len(seq.channels)):
-            chan = seq.channels[chan_i]
-            fout[seq].write(chan.name)
-            if chan_i != len(seq.channels) - 1:
-                fout[seq].write(",")
-        fout[seq].write("\n")
+            # Write CSV header for the sequence
+            for chan_i in range(len(seq.channels)):
+                chan = seq.channels[chan_i]
+                fout[seq].write(chan.name)
+                if chan_i != len(seq.channels) - 1:
+                    fout[seq].write(",")
+            fout[seq].write("\n")
 
     def close_output_files():
-        for seq in seqs.values():
-            fout[seq].close()
+        for adc_idx in seqs.keys():
+            for seq in seqs[adc_idx].values():
+                fout[seq].close()
 
     # Handle SIGINT to make all parsed content before Ctrl-C end up in the
     # file. Respect the caller's handler by fwding to it and restoring it.
@@ -176,13 +210,15 @@ def save_as_csv(fin, out_name, seqs, start_seq_num=0):
             if eof:
                 break # done
 
-            # index in header counts double-buffer, but our seq map does not
-            seq_idx = header.buf_idx / 2
+            adc_idx = header.buf_user_id >> 4
+            seq_idx = header.buf_user_id & 0xf
 
-            if seq_idx not in seqs.keys():
-                raise ParseException("Invalid buffer index " + \
+            if adc_idx not in seqs.keys() or \
+                seq_idx not in seqs[adc_idx].keys():
+                raise ParseException("Buffer ID does not match DAQ config " + \
                     "(pos " + ("0x%x" % pos) + "): " + \
-                    str(header.buf_idx))
+                    "id " + ("0x%x" % header.buf_user_id) + ": " + \
+                    "adc " + str(adc_idx) + " seq " + str(seq_idx))
 
             try:
                 if header.seq_num != cur_seq_num:
@@ -210,7 +246,7 @@ def save_as_csv(fin, out_name, seqs, start_seq_num=0):
                             str(header.buf_size - header.SIZE) + ")")
             pos += header.buf_size - header.SIZE
 
-            seq = seqs[seq_idx]
+            seq = seqs[adc_idx][seq_idx]
             samples = seq.parse_samples(header, sample_data)
 
             for i in range(samples.shape[0]): # sample channel sequence
