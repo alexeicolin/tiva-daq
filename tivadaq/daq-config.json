@@ -9,7 +9,12 @@
                     "priority": 0,
                     "trigger": "timer",
                     "bufSize": 512,
-                    "samples": [ "A0", "A1", "A2", "A3" ]
+                    "samples": [
+                        { "Vin":  "A0" },
+                        { "Vout": "A1" },
+                        { "Vcc":  "A2" },
+                        { "Vdd":  "A3" }
+                    ]
                 }
             }
         },
@@ -20,7 +25,9 @@
                     "priority": 1,
                     "trigger": "processor",
                     "bufSize": 64,
-                    "samples": [ "TS" ]
+                    "samples": [
+                        { "temp": "TS" }
+                    ]
                 }
             }
         }
