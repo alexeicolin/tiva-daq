@@ -68,8 +68,16 @@ function configFromObject(mod, daqConfigObj)
             seqConfig.trigger = triggerFromString(mod, seqConfigObj.trigger);
             seqConfig.bufSize = seqConfigObj.bufSize;
             seqConfig.samples.length = seqConfigObj.samples.length;
-            for (var j = 0; j < seqConfigObj.samples.length; ++j)
-                seqConfig.samples[j] = sampleFromString(mod, seqConfigObj.samples[j]);
+            for (var j = 0; j < seqConfigObj.samples.length; ++j) {
+                var sampleConfig = seqConfigObj.samples[j];
+                var name;
+                for (name in sampleConfig) break; // name is the only property
+                if (!name)
+                    throw "Empty sample config for adc.seq.sample " +
+                          adc + "." + seq + "." + j;
+                var chan = sampleConfig[name];
+                seqConfig.samples[j] = sampleFromString(mod, chan);
+            }
         }
     }
 }
