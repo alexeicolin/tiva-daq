@@ -46,15 +46,15 @@ static inline UInt bufWriteBytes(UInt8 *buf, UInt8 *bytes, Int numBytes)
     return numBytes;
 }
 
-static inline Void bufWriteFixedHeader(UInt8 *buf, UInt32 size, UInt8 idx)
+static inline Void bufWriteFixedHeader(UInt8 *buf, UInt32 size, UInt8 userId)
 {
     UInt8 *bufp = buf;
     bufp += bufWriteBytes(bufp, Export_marker,
                           Export_header[Export_HeaderFieldIndex_MARKER].size);
     bufp += bufWriteUInt(bufp, size,
                           Export_header[Export_HeaderFieldIndex_SIZE].size);
-    bufp += bufWriteUInt(bufp, idx,
-                          Export_header[Export_HeaderFieldIndex_IDX].size);
+    bufp += bufWriteUInt(bufp, userId,
+                          Export_header[Export_HeaderFieldIndex_USER_ID].size);
     Assert_isTrue(bufp - buf <= Export_headerFixedSize, NULL);
 }
 
@@ -231,7 +231,7 @@ Void Export_initBuffer(UInt bufId, UInt8 *addr)
     Log_write2(Export_LM_initBuffer, bufId, (IArg)addr);
 
     buf = &module->exportBuffers.elem[bufId];
-    bufWriteFixedHeader(addr, buf->size, bufId);
+    bufWriteFixedHeader(addr, buf->size, buf->userId);
     buf->addr = addr;
 }
 

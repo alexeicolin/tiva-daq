@@ -20,7 +20,7 @@ module Export {
     enum HeaderFieldIndex { // order must match with 'header' config below
         HeaderFieldIndex_MARKER = 0,
         HeaderFieldIndex_SIZE,
-        HeaderFieldIndex_IDX,
+        HeaderFieldIndex_USER_ID, // identifier supplied by the consumer
         HeaderFieldIndex_SEQ_NUM
     };
 
@@ -52,7 +52,7 @@ module Export {
     // meta domain and target domain:
     //    meta: id = addBuffer(size)
     //    target: setBufferPtr(id, addr)
-    metaonly UInt addBuffer(UInt size);  // Returns buffer id
+    metaonly UInt addBuffer(UInt8 userId, UInt size);  // Returns buffer id
     Void initBuffer(UInt bufId, UInt8 *addr);
 
     Void processBuffers(UArg arg1, UArg arg2);
@@ -116,6 +116,7 @@ module Export {
     struct ExportBuffer {
         UInt8 *addr;
         UInt16 size;
+        UInt8 userId; // identifier supplied by the consumer
         Bool full;
     };
 

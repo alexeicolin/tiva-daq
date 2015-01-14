@@ -75,10 +75,10 @@ function module$static$init(state, mod)
     state.bufferSeqNum = 0;
 }
 
-function addBuffer(size)
+function addBuffer(userId, size)
 {
     // Addr is set in target-domain (unfortunately, no choice)
-    var buf = {addr: null, size: size, full: false};
+    var buf = {addr: null, size: size, userId: userId, full: false};
     this.exportBuffers.length += 1;
     this.exportBuffers[this.exportBuffers.length - 1] = buf;
     return this.exportBuffers.length - 1;
