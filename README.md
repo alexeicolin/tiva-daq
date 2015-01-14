@@ -50,40 +50,39 @@ Example usage outline:
             }
         }
 
-    2. Configure application (UART ports, baud rate, logging, etc.) in `daq.cfg`.
+  2. Configure application (UART ports, baud rate, logging, etc.) in `daq.cfg`.
 
-    2. Build and flash the target application (see section below).
+  2. Build and flash the target application (see section below).
 
-    3. Setup data recording on the host. The following assumes a UART->USB
-       hooked up to UART *port 1*, since port 0 is used for console log output
-       (configurable in `daq.cfg`):
+  3. Setup data recording on the host. The following assumes a UART->USB
+     hooked up to UART *port 1*, since port 0 is used for console log output
+     (configurable in `daq.cfg`):
 
-        $ stty -F /dev/ttyUSB0 raw
-        $ cat /dev/ttyUSB0 > example.dat
+          $ stty -F /dev/ttyUSB0 raw
+          $ cat /dev/ttyUSB0 > example.dat
 
-    4. Reset the board (by default, data collection starts on reset).
+  4. Reset the board (by default, data collection starts on reset).
 
-    5. Parse the data stream into CSV (third arg is the prefix for output files):
+  5. Parse the data stream into CSV (third arg is the prefix for output files):
 
-        $ host/daq-to-csv.py tivadaq/daq-config.json example.dat example
+          $ host/daq-to-csv.py tivadaq/daq-config.json example.dat example
 
-    6. Find your data in `<prefix>.<sequence_name>.csv`:
+  6. Find your data in `<prefix>.<sequence_name>.csv`:
 
-        $ head example.voltages.csv
-        Vin,Vout
-        3.299194,1.465503
-        3.299194,1.474365
+          $ head example.voltages.csv
+          Vin,Vout
+          3.299194,1.465503
+          3.299194,1.474365
 
-        $ head example.environment.csv
-        temp
-        15.592651
-        15.713501
+          $ head example.environment.csv
+          temp
+          15.592651
+          15.713501
 
 Dependencies
 ============
 
-  * [XDCTools](http://downloads.ti.com/dsps/dsps_public_sw/sdo_sb/targetcontent/rtsc/)
-    >= 3.30
+  * [XDCTools](http://downloads.ti.com/dsps/dsps_public_sw/sdo_sb/targetcontent/rtsc/) >= 3.30
 
   * [SYSBIOS](http://www.ti.com/tool/sysbios) (also part of
     [TI-RTOS](http://www.ti.com/tool/ti-rtos) v2)
