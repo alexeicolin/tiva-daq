@@ -77,6 +77,9 @@ function configFromObject(mod, daqConfigObj)
 function module$use()
 {
     if (this.jsonConfigPath) {
+        // Dirty trick for adding the file as a dependency
+        xdc.loadTemplate('tivadaq/' + this.jsonConfigPath);
+
         var daqConfigObj = loadJson(this.jsonConfigPath);
         configFromObject(this, daqConfigObj);
     }
