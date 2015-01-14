@@ -21,7 +21,7 @@ XDCPATH="$XDCPATH;/opt/ti/tirtos/tirtos_tivac_2_00_01_23/products/bios_6_40_01_1
 # ti.drivers.{gpio,uart}
 XDCPATH="$XDCPATH;/opt/ti/tirtos/tirtos_tivac_2_00_01_23/packages"
 
-XDCPATH="$XDCPATH;$HOME/rtml/src/ti/xdc-platforms"
+XDCPATH="$XDCPATH;$HOME/rtml/src/ti/rtsc-platforms"
 
 export XDCPATH
 
