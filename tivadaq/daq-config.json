@@ -6,6 +6,7 @@
             "hwAvgFactor": 16,
             "seqs": {
                 "0": {
+                    "name": "voltages",
                     "priority": 0,
                     "trigger": "timer",
                     "bufSize": 512,
@@ -22,6 +23,7 @@
             "hwAvgFactor": 1,
             "seqs": {
                 "3": {
+                    "name": "environment",
                     "priority": 1,
                     "trigger": "processor",
                     "bufSize": 64,
