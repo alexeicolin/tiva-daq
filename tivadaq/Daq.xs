@@ -124,7 +124,7 @@ function module$static$init(state, mod)
             if (seqConf.priority == undefined)
                 seqConf.priority = 0;
 
-            seqState.enabled = seqConf.enabled;
+            seqState.enabled = seqConf.enabled ? true : false; // handle undef
             seqState.priority = seqConf.priority;
 
             seqState.seqDev = seqState.enabled ? AdcSeq.create(adc, seq) : null;
