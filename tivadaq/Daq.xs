@@ -212,7 +212,7 @@ function module$static$init(state, mod)
                         idx = undefined;
                     } else {
                         type = AdcChan.Type_ANALOG;
-                        idx = seqConf.samples[i];
+                        idx = seqConf.samples[i] - mod.AdcInChan_A0;
                     }
                     seqState.samples.samples[i] = AdcChan.create(type, idx);
                 } else {

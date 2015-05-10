@@ -39,11 +39,6 @@ static inline Int seqIdxFromHwiArg(UArg arg)
     return ((UInt32)arg >> 0) & 0xff;
 }
 
-static inline Bool isAnalogAdcInChan(Daq_AdcInChanName chan)
-{
-    return Daq_AdcInChan_A_FIRST <= chan && chan <= Daq_AdcInChan_A_LAST;
-}
-
 static Void setupDMAADCTransfer(Int adc, Int seq, Int idx)
 {
     const Daq_AdcState *adcState = &module->daqState.adcs[adc];

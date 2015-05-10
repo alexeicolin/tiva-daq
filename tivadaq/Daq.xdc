@@ -22,8 +22,7 @@ module Daq {
 
     // Not metaonly since used on target at runtime
     enum AdcInChanName {
-        AdcInChan_A_FIRST = 0,
-        AdcInChan_A0 = AdcInChan_A_FIRST,
+        AdcInChan_A0,
         AdcInChan_A1,
         AdcInChan_A2,
         AdcInChan_A3,
@@ -35,7 +34,6 @@ module Daq {
         AdcInChan_A9,
         AdcInChan_A10,
         AdcInChan_A11,
-        AdcInChan_A_LAST = AdcInChan_A11, // last analog channel
         AdcInChan_TS // temperature sensor
     };
 
