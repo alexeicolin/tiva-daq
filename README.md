@@ -107,7 +107,7 @@ to the installation paths. The script can be modified and sourced:
 Build and Flash
 ===============
 
-    $ xdc all tivadaq
+    $ xdc all -PR tivadaq
     $ openocd -f openocd/ek-tm4c123gxl.cfg -c 'program tivadaq/daq.xm4fg 0x0'
 
 TODO
