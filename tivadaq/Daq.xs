@@ -176,7 +176,8 @@ function module$static$init(state, mod)
         var adcState = state.daqState.adcs[adc];
 
         adcState.adcDev = Adc.create(adc);
-        adcState.hwAvgFactor = adcConfig.hwAvgFactor;
+        adcState.hwAvgFactor =
+            adcConfig.hwAvgFactor ? adcConfig.hwAvgFactor : 1;
 
         var triggerTimerNeeded = false;
 
