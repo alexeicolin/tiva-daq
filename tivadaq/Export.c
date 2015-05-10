@@ -5,9 +5,9 @@
 #include <xdc/runtime/Log.h>
 #include <ti/sysbios/knl/Swi.h>
 
-#include <platforms/tiva/hw/UartPort.h>
-#include <platforms/tiva/hw/GpioPort.h>
-#include <platforms/tiva/hw/GpioPeriph.h>
+#include <platforms/hw/tiva/UartPort.h>
+#include <platforms/hw/tiva/GpioPort.h>
+#include <platforms/hw/tiva/GpioPeriph.h>
 
 #include <stdbool.h>
 #include <stdint.h>

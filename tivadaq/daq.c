@@ -6,8 +6,9 @@
 
 #include <xdc/cfg/global.h> // globals defined in .cfg file, prefixed with 'g_' 
 
-#include <platforms/tiva/io/Led.h>
-#include <platforms/tiva/io/Console.h>
+#include <platforms/io/led/tiva/Blink.h>
+#include <platforms/io/led/tiva/Led.h>
+#include <platforms/io/console/tiva/Console.h>
 
 #include <Daq.h>
 
@@ -46,7 +47,7 @@ static Void start()
 {
     Daq_start();
     Clock_start(tempClockObj);
-    Led_blinkLed(g_statusLed, g_blinkRateRunning);
+    Blink_blinkLed(g_statusLed, g_blinkRateRunning);
     isRunning = TRUE;
 }
 
@@ -54,7 +55,7 @@ static Void stop()
 {
     Clock_stop(tempClockObj);
     Daq_stop();
-    Led_blinkLed(g_statusLed, g_blinkRateStopped);
+    Blink_blinkLed(g_statusLed, g_blinkRateStopped);
     isRunning = FALSE;
 }
 

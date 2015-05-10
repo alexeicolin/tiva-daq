@@ -13,8 +13,8 @@ function module$meta$init()
     BIOS = xdc.useModule('ti.sysbios.BIOS');
     Hwi = xdc.useModule('ti.sysbios.hal.Hwi');
     Swi = xdc.useModule('ti.sysbios.knl.Swi');
-    HwAttrs = xdc.useModule('platforms.tiva.hw.HwAttrs');
-    UartPort = xdc.useModule('platforms.tiva.hw.UartPort');
+    HwAttrs = xdc.useModule('platforms.hw.tiva.HwAttrs');
+    UartPort = xdc.useModule('platforms.hw.tiva.UartPort');
 
     // Header size
     this.headerSize = 0;
