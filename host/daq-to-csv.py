@@ -31,24 +31,26 @@ def bytes_to_int(byte_array):
 
 class Channel:
     VREFP = 3.3
-    VREFN = 0
+    VREFN = 0.0
+    NUM_UNITS = 2**12 # 12-bit ADC
 
     def __init__(self, name):
         self.name = name
 
 class SingleChannel(Channel):
-    ZERO = 0
-    MAX_COUNT = 0xFFF + 1 # number of 12-bit values
+    ZERO = 0.0
 
     def convert(self, sample):
-        return self.VREFP / self.MAX_COUNT * float(sample - self.ZERO)
+        mv_per_unit = (self.VREFP - self.VREFN) / self.NUM_UNITS
+        return float(sample) * mv_per_unit
 
 class DiffChannel(Channel):
-    ZERO = 0x7FF
-    MAX_COUNT = 0xFFF - ZERO # number of 12-bit values
+    ZERO = 0x800
 
     def convert(self, sample):
-        return self.VREFP / self.MAX_COUNT * float(sample - self.ZERO)
+
+        mv_per_unit = (2 * (self.VREFP - self.VREFN)) / self.NUM_UNITS
+        return float(sample - self.ZERO) * mv_per_unit
 
 class TempChannel(Channel):
     # See TM4C123 datasheet page 810
