@@ -283,6 +283,7 @@ try:
                 if j != samples.shape[1] - 1:
                     fout[seq].write(',')
             fout[seq].write("\n")
+            fout[seq].flush()
 except ParseException:
     print "ParseException at pos ", ("0x%x" % pos)
     raise
