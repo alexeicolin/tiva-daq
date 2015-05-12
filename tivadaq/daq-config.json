@@ -7,7 +7,7 @@
             "seqs": {
                 "0": {
                     "name": "voltages",
-                    "priority": 0,
+                    "priority": 1,
                     "trigger": "timer",
                     "bufSize": 512,
                     "samples": [
@@ -15,6 +15,24 @@
                         { "Vout": "A1" },
                         { "Vcc":  "A2" },
                         { "Vdd":  "A3" }
+                    ]
+                },
+                "1": {
+                    "name": "diff_voltages",
+                    "priority": 2,
+                    "trigger": "timer",
+                    "bufSize": 128,
+                    "samples": [
+                        { "Vdiff":  "D0" }
+                    ]
+                },
+                "3": {
+                    "name": "errata_tm4c123_rev_6_7_ADC14",
+                    "priority": 0,
+                    "trigger": "timer",
+                    "bufSize": 128,
+                    "samples": [
+                        { "errata":  "D0" }
                     ]
                 }
             }
