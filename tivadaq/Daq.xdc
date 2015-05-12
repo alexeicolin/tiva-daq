@@ -34,6 +34,12 @@ module Daq {
         AdcInChan_A9,
         AdcInChan_A10,
         AdcInChan_A11,
+        AdcInChan_D0,
+        AdcInChan_D1,
+        AdcInChan_D2,
+        AdcInChan_D3,
+        AdcInChan_D4,
+        AdcInChan_D5,
         AdcInChan_TS // temperature sensor
     };
 

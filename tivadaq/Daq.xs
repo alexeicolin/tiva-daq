@@ -210,9 +210,14 @@ function module$static$init(state, mod)
                     if (seqConf.samples[i] == mod.AdcInChan_TS) {
                         type = AdcChan.Type_TEMPERATURE;
                         idx = undefined;
-                    } else {
-                        type = AdcChan.Type_ANALOG;
+                    } else if (seqConf.samples[i] >= mod.AdcInChan_A0 &&
+                               seqConf.samples[i] <= mod.AdcInChan_A11) {
+                        type = AdcChan.Type_ANALOG_SINGLE;
                         idx = seqConf.samples[i] - mod.AdcInChan_A0;
+                    } else if (seqConf.samples[i] >= mod.AdcInChan_D0 &&
+                               seqConf.samples[i] <= mod.AdcInChan_D5) {
+                        type = AdcChan.Type_ANALOG_DIFF;
+                        idx = seqConf.samples[i] - mod.AdcInChan_D0;
                     }
                     seqState.samples.samples[i] = AdcChan.create(type, idx);
                 } else {

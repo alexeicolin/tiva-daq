@@ -119,13 +119,21 @@ Void onSampleTransferComplete(UArg arg)
         Assert_isTrue(FALSE, NULL); /* shouldn't get here if neither is ready */
 }
 
-static Void initAdcInputPin(const AdcChan_Info *adcChan)
+static Void initAdcInputPins(const AdcChan_Info *adcChan)
 {
-    const GpioPort_Info *gpioPort = GpioPort_getInfo(adcChan->gpioPort);
-    const GpioPeriph_Info *gpioPeriph = GpioPeriph_getInfo(gpioPort->periph);
+    const GpioPort_Info *gpioPort;
+    const GpioPeriph_Info *gpioPeriph;
+    UInt32 i;
 
-    SysCtlPeripheralEnable(gpioPeriph->periph);
-    GPIOPinTypeADC(gpioPeriph->base, gpioPort->pin);
+    for (i = 0; i < AdcChan_MAX_CHANNEL_PINS; ++i) {
+        if (adcChan->gpioPorts[i]) {
+            gpioPort = GpioPort_getInfo(adcChan->gpioPorts[i]);
+            gpioPeriph = GpioPeriph_getInfo(gpioPort->periph);
+
+            SysCtlPeripheralEnable(gpioPeriph->periph);
+            GPIOPinTypeADC(gpioPeriph->base, gpioPort->pin);
+        }
+    }
 }
 
 static UInt initADCSequence(Int adc, Int seq)
@@ -147,8 +155,9 @@ static UInt initADCSequence(Int adc, Int seq)
         if (sample == seqState->samples.count - 1)
             sampleChanCtl |= ADC_CTL_IE | ADC_CTL_END;
         ADCSequenceStepConfigure(adcDev->base, seq, sample, sampleChanCtl);
-        if (sampleChan->type == AdcChan_Type_ANALOG)
-            initAdcInputPin(sampleChan);
+        if (sampleChan->type == AdcChan_Type_ANALOG_SINGLE ||
+            sampleChan->type == AdcChan_Type_ANALOG_DIFF)
+            initAdcInputPins(sampleChan);
     }
 
     ADCSequenceEnable(adcDev->base, seq);

@@ -136,6 +136,8 @@ class ConfigException(Exception):
 def channel_from_string(name, chan_type):
     if chan_type[0] == "A":
         return SingleChannel(name)
+    elif chan_type[0] == "D":
+        return DiffChannel(name)
     elif chan_type == "TS":
         return TempChannel(name)
     else:
