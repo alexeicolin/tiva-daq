@@ -28,7 +28,7 @@ Example usage outline:
                     "seqs": {
                         "0": {
                             "name": "voltages",
-                            "priority": 0,
+                            "priority": 2,
                             "trigger": "timer",
                             "bufSize": 512,
                             "samples": [
@@ -36,7 +36,25 @@ Example usage outline:
                                 { "Vout": "A1" },
                             ]
                         },
+                        "1": {
+                            "name": "diff_voltages",
+                            "priority": 1,
+                            "trigger": "timer",
+                            "bufSize": 128,
+                            "samples": [
+                                { "Vdiff":  "D0" }
+                            ]
+                        },
                         "3": {
+                            "name": "errata_tm4c123_rev_6_7_ADC14",
+                            "priority": 0,
+                            "trigger": "timer",
+                            "bufSize": 128,
+                            "samples": [
+                                { "errata":  "D0" }
+                            ]
+                        },
+                        "2": {
                             "name": "environment",
                             "priority": 1,
                             "trigger": "processor",
@@ -109,12 +127,3 @@ Build and Flash
 
     $ xdc all -PR tivadaq
     $ openocd -f openocd/ek-tm4c123gxl.cfg -c 'program tivadaq/daq.xm4fg 0x0'
-
-TODO
-====
-
-Differential voltage channel type is not yet supported. It should be doable
-without too much effort, but watch out for
-[errata](http://www.ti.com/lit/pdf/spmz849) on the hardware functionality: the
-data added to the FIFO comes from the channel that is listed one slot further
-than expected.
